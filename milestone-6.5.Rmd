@@ -5,7 +5,7 @@ date: "4/14/2020"
 output: bookdown::pdf_document2
 bibliography: bib.bib
 biblio-style: "apalike"
-abstract: The first sentence of the abstract is a one sentence summary of the paper you are replicating. The second sentence of your abstract should report the results of your replication effort. With luck, it succeeded. If it was partially successful, write that. If it failed in an important way, tell us. The third and fourth sentence of your abstract tell us what you did and what you found. The fifth sentence is more open-ended. Why does what you found matter? Why should we care?
+abstract: This is an extension of Campbell et al. (2019) which details two separate experiments which suggest that individuals think of politicians with local connections and that exibit behavioral localism more highly. I was able to replicate the entire article with the exceptions of table 1 and figure 2 because they visuals relating to methodology and not the results themselves. I will be conducting an extension which includes the use of stan_glm instead of lm as well as look at certain subgroups based upon location and party identification. I hope to find cool things:)
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -29,7 +29,7 @@ library(arm)
 
 # Introduction
 
-The first paragraph is a review of the paper you are replicating. Flesh out the details. Tell us about the data and the model. Place it within the relevant literature, via a key citation or two. Highlight implications and caveats. Again, it is hard to summarize a 25 page paper in a paragraph. Do your best. Note that the paper’s own abstract is often a useful guide.
+The first paragraph is a review of the paper you are replicating. Flesh out the details. Tell us about the data and the model. Place it within the relevant literature, via a key citation or two. Highlight implications and caveats. Again, it is hard to summarize a 25 page paper in a paragraph. Do your best. Note that the paper’s own abstract is often a useful guide. 
 
 The second paragraph provides more details on your replications. Mention that you used R, and provide an citation to R in your bibliography. (See citation().) Cite the location from which you got the data and code for your replication. (This might be to the Dataverse, a webpage or “personal communication” with the author.) Provide a footnote with a link to your repo.
 
