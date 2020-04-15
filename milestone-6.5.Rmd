@@ -29,13 +29,9 @@ library(arm)
 
 # Introduction
 
-The first paragraph is a review of the paper you are replicating. Flesh out the details. Tell us about the data and the model. Place it within the relevant literature, via a key citation or two. Highlight implications and caveats. Again, it is hard to summarize a 25 page paper in a paragraph. Do your best. Note that the paper’s own abstract is often a useful guide. 
+@paper aims to answer the driving question of, "Why do politicians with strong local roots receive more electoral support?" by running and analyzing two separate studies. The first study uses a "paired profiles factorial vignette design" by asking subjects to rate hypothetical members of Parliament. The hypothetical members have varying levels of local roots as well as varying levels of "behavioral localism"—their track record of constituency service and if they act more so as a trustee or delegate. In the second study, subjects again considered hypothetical members of Parliament with varying levels of local roots. How, the subjects also received information on their political preferences and partisan loyalties. The first study depicted that the additional information swayed rankings, but local roots still seemed to have an association. The second study agreed with these results stating that, "even if voters are provided with a rich array of information about politicians’ behavior and ideological positioning, the effect of local roots remained positive and notable." The remainder of the article discusses the nuances of these results within the frame of the driving question.
 
-The second paragraph provides more details on your replications. Mention that you used R, and provide an citation to R in your bibliography. (See citation().) Cite the location from which you got the data and code for your replication. (This might be to the Dataverse, a webpage or “personal communication” with the author.) Provide a footnote with a link to your repo.
-
-The third and fourth paragraphs are more flexible. Indeed, they might be only one paragraph or they might be several. What did you do? What did you find?
-
-The final paragraph is different between the introduction and the conclusion. In the introduction, it may not even exist! (We don’t want to be overly didactic here. There are many ways to write a great paper.) Or it may just provide a roadmap to the rest of the paper.
+Using R, I replicated @paper. The original code can be found in the \textit{The Journal of Politics} Dataverse.^[https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/C15VOD] All of my code for this paper including the extension is available in my Github repository.^[https://github.com/SamuelLowry/why_friends_and_neighbors_replication_paper.git]
 
 # Literature Review
 
