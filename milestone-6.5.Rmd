@@ -1,0 +1,420 @@
+---
+title: "Milestone Six and a Half"
+author: "Sam Lowry"
+date: "4/14/2020"
+output: bookdown::pdf_document2
+bibliography: bib.bib
+biblio-style: "apalike"
+abstract: The first sentence of the abstract is a one sentence summary of the paper you are replicating. The second sentence of your abstract should report the results of your replication effort. With luck, it succeeded. If it was partially successful, write that. If it failed in an important way, tell us. The third and fourth sentence of your abstract tell us what you did and what you found. The fifth sentence is more open-ended. Why does what you found matter? Why should we care?
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(bookdown)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(cowplot)
+library(cobalt)
+library(xtable)
+library(devtools)
+library(margins)
+library(car)
+library(foreign)
+library(rms)
+library(reshape2)
+library(plyr)
+library(arm)
+```
+
+# Introduction
+
+The first paragraph is a review of the paper you are replicating. Flesh out the details. Tell us about the data and the model. Place it within the relevant literature, via a key citation or two. Highlight implications and caveats. Again, it is hard to summarize a 25 page paper in a paragraph. Do your best. Note that the paper’s own abstract is often a useful guide.
+
+The second paragraph provides more details on your replications. Mention that you used R, and provide an citation to R in your bibliography. (See citation().) Cite the location from which you got the data and code for your replication. (This might be to the Dataverse, a webpage or “personal communication” with the author.) Provide a footnote with a link to your repo.
+
+The third and fourth paragraphs are more flexible. Indeed, they might be only one paragraph or they might be several. What did you do? What did you find?
+
+The final paragraph is different between the introduction and the conclusion. In the introduction, it may not even exist! (We don’t want to be overly didactic here. There are many ways to write a great paper.) Or it may just provide a roadmap to the rest of the paper.
+
+# Literature Review
+
+After the introduction, you will have a literature review, not dissimilar from the one in the paper you are replicating. (You do not get to assume that we have read the paper you are replicating. We haven’t. So, if something is worth understanding about the literature, then you need to tell us, and in your own words.) You also need to closely review any relevant literature that has come out since the paper was published. (We will take off points if a simple Google scholar search brings up a relevant article which you should have mentioned.) Of course, if a lot of time has passed and/or this is a particularly active area of research, there may be dozens of relevant articles. You can’t review them all. Pick the most important ones, especially those written by the same authors and/or using the same data and/or performing an analysis similar to your own extension.
+
+# Possible Extensions
+
+I have already been able to replicate all of the results from \textit{Why Friends and Neighbors? Explaining the Electoral Appeal of Local Roots} @paper by Rosie Campbell, Philip Cowley, Nick Vivyan, and Markus Wagner in the \textit{The Journal of Politics}. The next step is to improve upon their methods and make suggests as to what to do next. My thoughts are below:
+
+1. The first step is to suggest using stan_glm from the rstanarm package instead of the simple lm. This allows for the use of generalized linear modeling instead of linear modeling with optional prior distributions for the coefficients—a Bayesian function.
+  
+2. Both studies examine how the attributes of the Members of Parliament influence views on behavioral localism and local roots. Nevertheless, the data does not look within many demographic categories which are collected about the subjects. How do these views change based upon individual political views, gender, education level etc. I aim therefore to also use priors to maybe weight for these separate groups to create a better picture of the UK electorate. 
+  
+3. Study 2 uses F-tests to see if there is interactions between Members of Parliaments' local ties and each remaining attribute. Page 140 in the textbook cautions against the use of such tests, for noisy data can give rise to insignificance with hypothesis testing even if there is some. Therefore it would be better to scrap this point or revise it. I am still in the process of determining a better alternative. 
+  
+4. In order to maybe make this study more reliable to extrapolate upon, we could delete all vignettes within the analysis where the Member of Parliament lives outside of the district which simply cannot occur with other legislators such as Congressmen in the United States which are required to live within their district. 
+
+These extensions will hopefully better the article as a whole and clarify its implications. 
+
+All analysis for this paper is available in my Github repository for this milestone is in the footnote below. ^[https://github.com/SamuelLowry/why_friends_and_neighbors_replication_paper.git]
+
+\newpage
+
+# References
+
+<div id="refs"></div>
+
+\newpage
+
+# (APPENDIX) Appendix {-} 
+
+# Appendix of Replicated Graphics
+
+I was able to replicate table 2, figure 1, and figure 3. I was unable to replicate table 1 and figure 2 because they were not data related. They were merely visualizations displaying content about methods and experimental design. Table 1 depicts written descriptions of the hypothetical Members of Parliament present to subject. Figure 2 depicts a screenshot of the survey. 
+
+### Table 2 {-} 
+
+```{r data}
+#loaded in the data from the first study
+
+d <- readRDS("paper_files/study1data.rds")
+
+```
+
+```{r table2, warning=FALSE, results='asis'}
+#warning = FALSE in order to get rid of unknown variable due to their code being wacl
+
+#Here I pulled over their code but then tried to improve upon it, for currently the figure is unreadable. 
+
+#models for this graphic and the table later on
+
+m1 <- lm(nickminusphil ~ localtreat*behtreatsimple, data = d)
+se1 <- sqrt(diag(vcovHC(m1)))
+
+m2 <- lm(nickminusphil ~ localtreat*behtreatsimple +
+           gender + agegrp + socgrade + qual
+         , data = d)
+se2 <- sqrt(diag(vcovHC(m2)))
+
+m3 <- lm(nickminusphil ~ localtreat*behtreat, data = d)
+se3 <- sqrt(diag(vcovHC(m3)))
+
+m4 <- lm(nickminusphil ~ localtreat*behtreat +
+           gender + agegrp + socgrade + qual
+         , data = d)
+se4 <- sqrt(diag(vcovHC(m4)))
+
+#I took the code for table 2 from their code and made it output to Latex
+
+stargazer(mget(paste0("m",1:4)),
+          se = mget(paste0("se",1:4)),
+          type = "latex",
+          float = FALSE,
+          dep.var.caption = "",
+          dep.var.labels.include = FALSE,
+          title = "", 
+          #intercept.bottom = FALSE, intercept.top = TRUE,
+          keep.stat = c("n", "rsq", "adj.rsq"),
+          omit = "socgrade|agegrp|gender|qual",
+          order = c("Constant", "^localtreatLocal roots$", 
+                    "^behtreatsimpleBehavioural info$", 
+                    "^behtreatConst. focus$", 
+                    "^behtreatWestmin. focus$",
+                    "^localtreatLocal roots:behtreatsimpleBehavioural info$",
+                    "^localtreatLocal roots:behtreatConst. focus$",
+                    "^localtreatLocal roots:behtreatWestmin. focus$"
+          ),
+          add.lines = list(c("Controls for voter characteristics?", 
+                             rep(c("No","Yes"), 2))),
+          covariate.labels = c("Intercept", "Local roots", "Behavioral localism information",
+                               "Behavioral localism: High (vs. no info)",
+                               "Behavioral localism: Low (vs. no info)",
+                               "Local roots X Behavioral info.", 
+                               "Local roots X High behavioral localism",
+                               "Local roots X Low behavioral localism")
+)
+```
+
+### Figure 1 {-} 
+
+```{r figure1, warning = FALSE, cache = TRUE}
+
+#warning is false to delete warning for unknown variable specified in code which does not change vizualization from the paper. 
+
+#function needed for figure 1
+
+predict.rob <- function(object, vcov,newdata){
+  tt <- terms(object)
+  if(missing(newdata)){ newdata <- x$model }
+  else {
+    Terms <- delete.response(tt)
+    m <- model.frame(Terms, newdata, na.action = na.pass, 
+                     xlev = object$xlevels)
+    if (!is.null(cl <- attr(Terms, "dataClasses"))) 
+      .checkMFClasses(cl, m)
+    X <- model.matrix(Terms, m, contrasts.arg = object$contrasts)
+    offset <- rep(0, nrow(X))
+    if (!is.null(off.num <- attr(tt, "offset"))) 
+      for (i in off.num) offset <- offset + eval(attr(tt, 
+                                                      "variables")[[i + 1]], newdata)
+    if (!is.null(object$call$offset)) 
+      offset <- offset + eval(object$call$offset, newdata)
+    mmDone <- FALSE
+  }
+  #m.mat <- model.matrix(x$terms,data=newdata)
+  m.coef <- object$coef
+  fit <- as.vector(X %*% object$coef)
+  se.fit <- sqrt(diag(X%*%vcov%*%t(X)))
+  return(list(fit=fit,se.fit=se.fit))
+}
+
+
+### Figure 1
+#I was very confused about B here especially because of the variability and the "no information" section being higher. 
+## Avg treatment effect of local roots with const and westmihn. info
+out <- summary(margins(m4, vcov = vcovHC(m4), 
+                       at = list(behtreat = c("No behavioural info", "Const. focus", "Westmin. focus"))))
+out <- subset(out, factor == "localtreatLocal roots")
+margins.m4 <- out 
+
+## make margins plot
+margins.comb <- margins.m4
+margins.comb$behtreat.neat <- car:::recode(margins.comb$behtreat, 
+                                           '"No behavioural info" = "Behavioral information treatment --\\nNo information (Vignettes 1-2)";
+                                           "Westmin. focus" = "Behavioral information treatment --\\nLow behavioral localism (Vignettes 5-6)";
+                                           "Const. focus" = "Behavioral information treatment --\\nHigh behavioral localism (Vignettes 3-4)"')
+margins.comb$behtreat.neat <- factor(sub(" --", ":", margins.comb$behtreat.neat),
+                                     levels = c("Behavioral information treatment:\nNo information (Vignettes 1-2)", 
+                                                "Behavioral information treatment:\nLow behavioral localism (Vignettes 5-6)",
+                                                "Behavioral information treatment:\nHigh behavioral localism (Vignettes 3-4)"
+                                     ))
+p1 <- ggplot(margins.comb, aes(x = factor, y = AME)) + 
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
+  geom_linerange(aes(x=factor, xend=factor, ymin=lower, ymax=upper), size = 0.6) +
+  geom_point(size = 3.5, shape = 21, fill = "white") +
+  labs(x = "", y = "") + 
+  coord_flip() +
+  facet_wrap( ~ behtreat.neat, ncol = 1) + 
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) + 
+  ggtitle("(b) Effect of MP local roots treatment") 
+
+
+
+
+## predlevels for m4
+#what is m4???
+newdf <- data.frame(expand.grid(localtreat = factor(c("No local roots", "Local roots"), 
+                                                    levels = levels(d$localtreat)),
+                                behtreat = factor(levels(d$behtreat), levels = levels(d$behtreat))
+),
+gender = factor(levels(d$gender)[which.max(table(d$gender))], 
+                levels = levels(d$gender)),
+agegrp = factor(levels(d$agegrp)[which.max(table(d$agegrp))], 
+                levels = levels(d$agegrp)),
+socgrade = factor(levels(d$socgrade)[which.max(table(d$socgrade))], 
+                  levels = levels(d$socgrade)),
+qual = factor(levels(d$qual)[which.max(table(d$qual))], 
+              levels = levels(d$qual))
+)
+preds <- predict.rob(m4, vcov = vcovHC(m4), newdata = newdf)
+newdf$yhat <- preds$fit
+newdf$se.yhat <- preds$se.fit
+newdf$lo <- newdf$yhat - (1.96*newdf$se.yhat)
+newdf$hi <- newdf$yhat + (1.96*newdf$se.yhat)
+predlevels.m4 <- newdf
+
+
+## make predlevels plot
+#okay this is still the first plot. B still confuses me though. 
+predlevels.comb <- predlevels.m4
+predlevels.comb$behtreat.neat <- car:::recode(predlevels.comb$behtreat, 
+                                              '"No behavioural info" = "Behavioral information treatment --\\nNo information (Vignettes 1-2)";
+                                              "Westmin. focus" = "Behavioral information treatment --\\nLow behavioral localism (Vignettes 5-6)";
+                                              "Const. focus" = "Behavioral information treatment --\\nHigh behavioral localism (Vignettes 3-4)"')
+predlevels.comb$behtreat.neat <- factor(sub(" --", ":", predlevels.comb$behtreat.neat),
+                                        levels = c("Behavioral information treatment:\nNo information (Vignettes 1-2)", 
+                                                   "Behavioral information treatment:\nLow behavioral localism (Vignettes 5-6)",
+                                                   "Behavioral information treatment:\nHigh behavioral localism (Vignettes 3-4)"
+                                        ))
+
+p2 <- ggplot(predlevels.comb, aes(x = localtreat, y = yhat)) + 
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
+  geom_linerange(aes(x=localtreat, xend=localtreat, ymin=lo, ymax=hi), size = 0.6) +
+  geom_point(size = 3.5, shape = 21, fill = "white") +
+  labs(x = "", y = "") + 
+  coord_flip() +
+  facet_wrap( ~ behtreat.neat, ncol = 1) + 
+  theme_bw() +
+  theme(legend.position = "bottom") + 
+  ggtitle("(a) Predicted relative rating")
+
+
+
+## Now combine aspects of above plots into 3 x 2 plot
+pcomb <- plot_grid(p2, p1, align = "h", rel_widths = c(1,0.8))
+
+pcomb
+```
+
+### Figure 3 {-} 
+
+```{r figure3, warning = FALSE}
+
+#warning is false to delete warning for 11 deletions caused by ggplot which does not change vizualization from the paper. 
+
+#needed data
+
+long.dat <- readRDS(file = "paper_files/study2data_long.rds")
+
+### Create labels for plotting
+
+# for full results
+labels.full <- rev(expression(
+  "", italic("Party & position (baseline = Labour left-wing)"), "Labour centre", "Conservative centre", "Conservative right-wing",
+  "", italic("Local roots (baseline = lives elsewhere)"),"5 years in area", "20 years in area", "Grew up and lives in area", 
+  "", italic("Constituency work (baseline = 1 day)"), "2 days", "3 days", "4 days",
+  "", italic("Main policy influence (baseline = party)"), "constituents' views","own personal views",
+  "", italic("Policy interests (baseline = economy and tax)"), "education and health",
+  "", italic("MP sex (baseline = female)"), "male"))
+
+# for x axis
+effect.label <- "Change in probability of MP being preferred,\n relative to baseline"
+
+#needed functions
+
+add.top <- function(df, new.level){
+  to.add <- data.frame(mean = c(NA,NA, 0), ci.lo = c(NA,NA, 0), ci.hi = c(NA,NA, 0),
+                       category = rep("", 3), attribute = rep(df$attribute[1],3),
+                       level = c("", " ", new.level))
+  return(rbind(to.add, df))
+}
+add.justify <- function(df){
+  df$left.justify <- rep(0, nrow(df))
+  df$left.justify[2] <- 1
+  return(df)
+}
+
+## Function to get regression-based AMCE estimates for each attribute level using 
+## OLS estimator with clustered SEs (Hainmueller, Hopkins and Yammamoto 2014)
+
+#Note to read up on the other literature above
+
+get.amcetab <- function(data, variables, J = 2){    
+  Nvar <- length(variables)
+  amce.list <- vector("list", length = Nvar)
+  
+  for(i in 1:Nvar){ # get AMCE for each variable attribute
+    fmla <- as.formula(paste("mp.preferred ~ ",variables[i], sep = ""))
+    model <- ols(fmla, data = data, x = T, y = T) 
+    # NOTE: The data for the model has to have no NAs on any model variables 
+    # for the robcov(cluster()) function to work 
+    model.clus <- robcov(model, cluster = data$ID, method = "efron")
+    coef <- model.clus$coef[names(model.clus$coef)!="Intercept"]
+    se.clus <- sqrt(diag(model.clus$var))
+    se.clus <- se.clus[names(se.clus)!="Intercept"]       
+    sub.tab <- data.frame("AMCE" = coef, 
+                          "ci.lo" = coef - (1.96*se.clus),
+                          "ci.hi" = coef + (1.96*se.clus),
+                          "cluster.se" = se.clus)
+    sub.tab$category <- names(coef)
+    sub.tab <- cbind(sub.tab, colsplit(sub.tab$category, "=", c("attribute","level")))
+    sub.tab$level <- as.character(sub.tab$level)    
+    row.names(sub.tab) <- NULL
+    # add in gaps and baselines
+    to.add <- data.frame(AMCE = c(NA,NA, 0), ci.lo = c(NA,NA, 0), ci.hi = c(NA,NA, 0),
+                         cluster.se = c(NA,NA, 0),
+                         category = rep("", 3), attribute = rep(sub.tab$attribute[1],3),
+                         level = c("", " ", "baseline"))
+    amce.list [[i]] <- rbind(to.add, sub.tab)
+  } 
+  amce.tab <- do.call("rbind", amce.list)
+  # re-make initial labels column
+  amce.tab$category <- paste(amce.tab$attribute, amce.tab$level, sep = ": ")
+  # make this into ordered factor
+  amce.tab$category <- factor(amce.tab$category, levels = rev(amce.tab$category), order =T)    
+  
+  return(amce.tab)
+}
+
+## Function that calls get.amcetab for multiple predictors and combines results
+
+amce.tab <- function(data, variables, multi = F, same.party = F){
+  # data must be a single data frame or a list of data frames (if multi = T)
+  # with named elements
+  # Also relies on specific ordering of explanatory variables
+  if(multi == T & same.party == F){
+    amce.tab.list <- list(NA, length = length(data))
+    for(i in 1:length(data)){
+      tmp <- get.amcetab(data[[i]], variables = variables)
+      tmp$set <- rep(names(data)[i], nrow(tmp))
+      amce.tab.list[[i]] <- tmp
+    }
+    amce.tab <- do.call("rbind",amce.tab.list)
+    amce.tab$set <- factor(amce.tab$set)
+    return(amce.tab)
+  }
+  if(multi == T & same.party == T){
+    amce.tab.list <- list(NA, length = length(data))
+    for(i in 1:length(data)){
+      vars <- if(grepl("same party", names(data)[i])==T|grepl("Same Party", names(data)[i])==T) variables[2:length(variables)] else variables
+      tmp <- get.amcetab(data[[i]], variables = vars)
+      tmp$set <- rep(names(data)[i], nrow(tmp))
+      amce.tab.list[[i]] <- tmp
+    }
+    names(amce.tab.list) <- names(data)
+    diff.party <- amce.tab.list[grepl("same party", names(amce.tab.list))==F&
+                                  grepl("Same Party", names(amce.tab.list))==F]
+    same.party <- amce.tab.list[grepl("same party", names(amce.tab.list))==T |
+                                  grepl("Same Party", names(amce.tab.list))==T]
+    to.add <- data.frame(AMCE = rep(NA, 4), ci.lo = rep(NA, 4), ci.hi =  rep(NA, 4),
+                         cluster.se =  rep(NA, 4),
+                         category =  diff.party[[1]]$category[1:4], 
+                         attribute =  diff.party[[1]]$attribute[1:4], 
+                         level = diff.party[[1]]$level[1:4],
+                         set = rep(NA, 4))
+    for(i in 1:length(data)){                     
+      if(grepl("same party", names(data)[i])==T|grepl("Same Party", names(data)[i])==T){
+        amce.tab.list[[i]] <- rbind(to.add,amce.tab.list[[i]])
+        amce.tab.list[[i]]$set[1:4] <-  amce.tab.list[[i]]$set[5:8]
+      }
+      else amce.tab.list[[i]] <- amce.tab.list[[i]]
+    }     
+    amce.tab <- do.call("rbind",amce.tab.list)
+    amce.tab$set <- factor(amce.tab$set)
+    return(amce.tab)
+  } 
+  if(multi == F)   {
+    get.amcetab(data, variables)
+  }
+  
+}
+
+
+### Figure 3: AMCEs for all attributes
+
+res <- amce.tab(data = long.dat, 
+                variables = c("mp.partypos", "mp.localroots", "mp.const", "mp.influence", "mp.policy", "mp.gender"),
+                multi = F)
+res$category <- factor(as.character(res$category), levels = rev(as.character(res$category)), order =T)
+#write.csv(res, "amce-all.csv")# write results to csv file
+
+# Full plot for all attributes
+res <- res[2:nrow(res),] # chop off top empty layer
+res <- subset(res, level != "baseline")# remove artificial 'baseline' rows
+labels <- labels.full
+ggplot(res, aes(x = category, y = AMCE, color = attribute)) + 
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
+  geom_pointrange(aes(ymin = ci.lo, ymax = ci.hi), size = 0.75) + 
+  labs(y = effect.label, x = "") + 
+  coord_flip() + 
+  theme_bw() + 
+  theme(axis.text = element_text(colour = "black")) +
+  theme(legend.position = "none") +
+  theme(text = element_text(size = 15)) +
+  theme(axis.ticks.y = element_blank(), axis.text.y = element_text(hjust = 1), # remove ticks and justify
+        axis.title.x = element_text(size = 13, vjust = 0)) + 
+  scale_x_discrete(labels=labels)
+
+```
+
