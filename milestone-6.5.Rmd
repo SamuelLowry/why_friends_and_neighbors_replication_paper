@@ -5,7 +5,7 @@ date: "4/14/2020"
 output: bookdown::pdf_document2
 bibliography: bib.bib
 biblio-style: "apalike"
-abstract: This is an extension of Campbell et al. (2019) which details two separate experiments which suggest that individuals think of politicians with local connections and that exibit behavioral localism more highly. I was able to replicate the entire article with the exceptions of table 1 and figure 2 because they visuals relating to methodology and not the results themselves. I will be conducting an extension which includes the use of stan_glm instead of lm as well as look at certain subgroups based upon location and party identification. I hope to find cool things:)
+abstract: This is an extension of Campbell et al. (2019) which details two separate experiments which suggest that individuals think of politicians with local roots and that exibit behavioral localism more highly. I was able to replicate the entire article with the exceptions of table 1 and figure 2 because they visuals relating to methodology and not the results themselves. I will be conducting an extension which includes the use of stan_glm instead of lm as well as look at certain subgroups based upon location and party identification. I hope to find cool things:)
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -35,7 +35,7 @@ Using R, I replicated @paper. The original code can be found in the \textit{The 
 
 # Literature Review
 
-After the introduction, you will have a literature review, not dissimilar from the one in the paper you are replicating. (You do not get to assume that we have read the paper you are replicating. We haven’t. So, if something is worth understanding about the literature, then you need to tell us, and in your own words.) You also need to closely review any relevant literature that has come out since the paper was published. (We will take off points if a simple Google scholar search brings up a relevant article which you should have mentioned.) Of course, if a lot of time has passed and/or this is a particularly active area of research, there may be dozens of relevant articles. You can’t review them all. Pick the most important ones, especially those written by the same authors and/or using the same data and/or performing an analysis similar to your own extension.
+Due to @paper being a very recent article, published May 6, 2019, there has not been any follow-up scholarly work on the topic even from the authors themselves. Nevertheless, @paper builds off of a rich history of the "friends and neighbors" effect which was first coined by @key. Other noteable works include @bowler and @garand which highlight the United States and @arzheimer as well as @arzheimer2 which highlight Britain. These two articles are particularly important due to @paper dealing with the "friends and neighbors" effect in the United Kingdom. These are just a couple of the noteable works. Of course, more in way of an actual review is to come.
 
 # Possible Extensions
 
