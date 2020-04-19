@@ -1,0 +1,101 @@
+---
+title: "Extension Work"
+author: "Samuel Lowry"
+date: "4/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(bookdown)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(cowplot)
+library(cobalt)
+library(xtable)
+library(devtools)
+library(margins)
+library(car)
+library(foreign)
+library(rms)
+library(reshape2)
+library(plyr)
+library(arm)
+library(rstanarm)
+```
+
+
+1, stan glm for study 1
+2, look at party effects for study 1
+3, look at population effects for study 2
+
+
+### Table 2 {-} 
+
+```{r data}
+#loaded in the data from the first study
+
+
+
+d <- readRDS("paper_files/study1data.rds")
+
+```
+
+```{r table2, warning=FALSE, results='asis'}
+#warning = FALSE in order to get rid of unknown variable due to their code being wacl
+
+#Here I pulled over their code but then tried to improve upon it, for currently the figure is unreadable. 
+
+#models for this graphic and the table later on
+
+m1 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple, data = d, refresh = 0)
+
+#se1 <- sqrt(diag(vcovHC(m1)))
+
+m2 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple +
+           gender + agegrp + socgrade + qual
+         , data = d, refresh = 0)
+
+#se2 <- sqrt(diag(vcovHC(m2)))
+
+m3 <- stan_glm(nickminusphil ~ localtreat*behtreat, data = d, refresh = 0)
+
+#se3 <- sqrt(diag(vcovHC(m3)))
+
+m4 <- stan_glm(nickminusphil ~ localtreat*behtreat +
+           gender + agegrp + socgrade + qual
+         , data = d, refresh = 0)
+#se4 <- sqrt(diag(vcovHC(m4)))
+
+#I took the code for table 2 from their code and made it output to Latex
+
+stargazer(mget(paste0("m",1:4)),
+         # se = mget(paste0("se",1:4)),
+          type = "html",
+          float = FALSE,
+          dep.var.caption = "",
+          dep.var.labels.include = FALSE,
+          title = "", 
+          #intercept.bottom = FALSE, intercept.top = TRUE,
+          keep.stat = c("n", "rsq", "adj.rsq"),
+          omit = "socgrade|agegrp|gender|qual",
+          order = c("Constant", "^localtreatLocal roots$", 
+                    "^behtreatsimpleBehavioural info$", 
+                    "^behtreatConst. focus$", 
+                    "^behtreatWestmin. focus$",
+                    "^localtreatLocal roots:behtreatsimpleBehavioural info$",
+                    "^localtreatLocal roots:behtreatConst. focus$",
+                    "^localtreatLocal roots:behtreatWestmin. focus$"
+          ),
+          add.lines = list(c("Controls for voter characteristics?", 
+                             rep(c("No","Yes"), 2))),
+          covariate.labels = c("Intercept", "Local roots", "Behavioral localism information",
+                               "Behavioral localism: High (vs. no info)",
+                               "Behavioral localism: Low (vs. no info)",
+                               "Local roots X Behavioral info.", 
+                               "Local roots X High behavioral localism",
+                               "Local roots X Low behavioral localism")
+)
+```

@@ -5,7 +5,7 @@ date: "4/14/2020"
 output: bookdown::pdf_document2
 bibliography: bib.bib
 biblio-style: "apalike"
-abstract: This is an extension of Campbell et al. (2019) which details two separate experiments which suggest that individuals think of politicians with local roots and that exibit behavioral localism more highly. I was able to replicate the entire article with the exceptions of table 1 and figure 2 because they visuals relating to methodology and not the results themselves. I will be conducting an extension which includes the use of stan_glm instead of lm as well as look at certain subgroups based upon location and party identification. I hope to find cool things:)
+abstract: Campbell et al. (2019) which details two separate experiments which suggest that individuals think of politicians with local roots and that exibit behavioral localism more highly. I was able to replicate the entire article with the exceptions of table 1 and figure 2 because they visuals relating to methodology and not the results themselves. I will be conducting an extension which includes the use of stan_glm instead of lm as well as look at certain subgroups based upon location and party identification. I hope to find cool things:)
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -25,9 +25,19 @@ library(rms)
 library(reshape2)
 library(plyr)
 library(arm)
+library(rstanarm)
 ```
 
 # Introduction
+
+Alice Notes
++ as.factor(region))plm())plm(y ~ x, data = mydata, within = “region”) no stan_glm for conjoint study, hetergeneouos effects, conjoint balance, effect of other attributes compared to one we care about, 
+
+sgtan_glm(voting ~ region*local_thing, data=data)
+
+1, stan glm for study 1
+2, look at party effects for study 1
+3, look at population effects for study 2
 
 @paper aims to answer the driving question of, "Why do politicians with strong local roots receive more electoral support?" by running and analyzing two separate studies. The first study uses a "paired profiles factorial vignette design" by asking subjects to rate hypothetical members of Parliament. The hypothetical members have varying levels of local roots as well as varying levels of "behavioral localism"—their track record of constituency service and if they act more so as a trustee or delegate. In the second study, subjects again considered hypothetical members of Parliament with varying levels of local roots. How, the subjects also received information on their political preferences and partisan loyalties. The first study depicted that the additional information swayed rankings, but local roots still seemed to have an association. The second study agreed with these results stating that, "even if voters are provided with a rich array of information about politicians’ behavior and ideological positioning, the effect of local roots remained positive and notable." The remainder of the article discusses the nuances of these results within the frame of the driving question.
 
@@ -37,21 +47,233 @@ Using R, I replicated @paper. The original code can be found in the \textit{The 
 
 Due to @paper being a very recent article, published May 6, 2019, there has not been any follow-up scholarly work on the topic even from the authors themselves. Nevertheless, @paper builds off of a rich history of the "friends and neighbors" effect which was first coined by @key. Other noteable works include @bowler and @garand which highlight the United States and @arzheimer as well as @arzheimer2 which highlight Britain. These two articles are particularly important due to @paper dealing with the "friends and neighbors" effect in the United Kingdom. These are just a couple of the noteable works. Of course, more in way of an actual review is to come.
 
-# Possible Extensions
+# Extension
 
 I have already been able to replicate all of the results from \textit{Why Friends and Neighbors? Explaining the Electoral Appeal of Local Roots} @paper by Rosie Campbell, Philip Cowley, Nick Vivyan, and Markus Wagner in the \textit{The Journal of Politics}. The next step is to improve upon their methods and make suggests as to what to do next. My thoughts are below:
 
-1. The first step is to suggest using stan_glm from the rstanarm package instead of the simple lm. This allows for the use of generalized linear modeling instead of linear modeling with optional prior distributions for the coefficients—a Bayesian function.
-  
-2. Both studies examine how the attributes of the Members of Parliament influence views on behavioral localism and local roots. Nevertheless, the data does not look within many demographic categories which are collected about the subjects. How do these views change based upon individual political views, gender, education level etc. I aim therefore to also use priors to maybe weight for these separate groups to create a better picture of the UK electorate. 
-  
-3. Study 2 uses F-tests to see if there is interactions between Members of Parliaments' local ties and each remaining attribute. Page 140 in the textbook cautions against the use of such tests, for noisy data can give rise to insignificance with hypothesis testing even if there is some. Therefore it would be better to scrap this point or revise it. I am still in the process of determining a better alternative. 
-  
-4. In order to maybe make this study more reliable to extrapolate upon, we could delete all vignettes within the analysis where the Member of Parliament lives outside of the district which simply cannot occur with other legislators such as Congressmen in the United States which are required to live within their district. 
+1. Use stan_glm instead of lm for study 1
+2. Look at heterogeneous effects for study 1
+3. Look at population effects for study 2
 
-These extensions will hopefully better the article as a whole and clarify its implications. 
+```{r extension_data}
+#loaded in the data from the first study
 
-All analysis for this paper is available in my Github repository for this milestone is in the footnote below. ^[https://github.com/SamuelLowry/why_friends_and_neighbors_replication_paper.git]
+d <- readRDS("paper_files/study1data.rds")
+```
+
+```{r one_extension, results='asis'}
+m5 <- stan_glm(nickminusphil ~ localtreat*behtreat + localtreat*agegrp
+         , data = d, refresh = 0)
+
+stargazer(data.frame(m5), type="latex",
+          title = "Model depicting Heterogeneous Effects",
+          summary.stat = c("mean", "sd"),
+          digits = 3)
+```
+
+Comparing this table to table 2 of @paper, there is not a change in regards to the treatment, but there is a notable difference specifically with the treatment having a greater effect on older people.
+
+```{r figure3extension, warning = FALSE}
+
+#warning is false to delete warning for 11 deletions caused by ggplot which does not change vizualization from the paper. 
+
+#needed data
+
+long.dat <- readRDS(file = "paper_files/study2data_long.rds")
+
+long.dat <- long.dat %>% 
+  filter(!region_GOR == "London")
+
+### Create labels for plotting
+
+# for full results
+labels.full <- rev(expression(
+  "", italic("Party & position (baseline = Labour left-wing)"), "Labour centre", "Conservative centre", "Conservative right-wing",
+  "", italic("Local roots (baseline = lives elsewhere)"),"5 years in area", "20 years in area", "Grew up and lives in area", 
+  "", italic("Constituency work (baseline = 1 day)"), "2 days", "3 days", "4 days",
+  "", italic("Main policy influence (baseline = party)"), "constituents' views","own personal views",
+  "", italic("Policy interests (baseline = economy and tax)"), "education and health",
+  "", italic("MP sex (baseline = female)"), "male"))
+
+# for x axis
+effect.label <- "Change in probability of MP being preferred,\n relative to baseline"
+
+#needed functions
+
+add.top <- function(df, new.level){
+  to.add <- data.frame(mean = c(NA,NA, 0), ci.lo = c(NA,NA, 0), ci.hi = c(NA,NA, 0),
+                       category = rep("", 3), attribute = rep(df$attribute[1],3),
+                       level = c("", " ", new.level))
+  return(rbind(to.add, df))
+}
+add.justify <- function(df){
+  df$left.justify <- rep(0, nrow(df))
+  df$left.justify[2] <- 1
+  return(df)
+}
+
+## Function to get regression-based AMCE estimates for each attribute level using 
+## OLS estimator with clustered SEs (Hainmueller, Hopkins and Yammamoto 2014)
+
+#Note to read up on the other literature above
+
+get.amcetab <- function(data, variables, J = 2){    
+  Nvar <- length(variables)
+  amce.list <- vector("list", length = Nvar)
+  
+  for(i in 1:Nvar){ # get AMCE for each variable attribute
+    fmla <- as.formula(paste("mp.preferred ~ ",variables[i], sep = ""))
+    model <- ols(fmla, data = data, x = T, y = T) 
+    # NOTE: The data for the model has to have no NAs on any model variables 
+    # for the robcov(cluster()) function to work 
+    model.clus <- robcov(model, cluster = data$ID, method = "efron")
+    coef <- model.clus$coef[names(model.clus$coef)!="Intercept"]
+    se.clus <- sqrt(diag(model.clus$var))
+    se.clus <- se.clus[names(se.clus)!="Intercept"]       
+    sub.tab <- data.frame("AMCE" = coef, 
+                          "ci.lo" = coef - (1.96*se.clus),
+                          "ci.hi" = coef + (1.96*se.clus),
+                          "cluster.se" = se.clus)
+    sub.tab$category <- names(coef)
+    sub.tab <- cbind(sub.tab, colsplit(sub.tab$category, "=", c("attribute","level")))
+    sub.tab$level <- as.character(sub.tab$level)    
+    row.names(sub.tab) <- NULL
+    # add in gaps and baselines
+    to.add <- data.frame(AMCE = c(NA,NA, 0), ci.lo = c(NA,NA, 0), ci.hi = c(NA,NA, 0),
+                         cluster.se = c(NA,NA, 0),
+                         category = rep("", 3), attribute = rep(sub.tab$attribute[1],3),
+                         level = c("", " ", "baseline"))
+    amce.list [[i]] <- rbind(to.add, sub.tab)
+  } 
+  amce.tab <- do.call("rbind", amce.list)
+  # re-make initial labels column
+  amce.tab$category <- paste(amce.tab$attribute, amce.tab$level, sep = ": ")
+  # make this into ordered factor
+  amce.tab$category <- factor(amce.tab$category, levels = rev(amce.tab$category), order =T)    
+  
+  return(amce.tab)
+}
+
+## Function that calls get.amcetab for multiple predictors and combines results
+
+amce.tab <- function(data, variables, multi = F, same.party = F){
+  # data must be a single data frame or a list of data frames (if multi = T)
+  # with named elements
+  # Also relies on specific ordering of explanatory variables
+  if(multi == T & same.party == F){
+    amce.tab.list <- list(NA, length = length(data))
+    for(i in 1:length(data)){
+      tmp <- get.amcetab(data[[i]], variables = variables)
+      tmp$set <- rep(names(data)[i], nrow(tmp))
+      amce.tab.list[[i]] <- tmp
+    }
+    amce.tab <- do.call("rbind",amce.tab.list)
+    amce.tab$set <- factor(amce.tab$set)
+    return(amce.tab)
+  }
+  if(multi == T & same.party == T){
+    amce.tab.list <- list(NA, length = length(data))
+    for(i in 1:length(data)){
+      vars <- if(grepl("same party", names(data)[i])==T|grepl("Same Party", names(data)[i])==T) variables[2:length(variables)] else variables
+      tmp <- get.amcetab(data[[i]], variables = vars)
+      tmp$set <- rep(names(data)[i], nrow(tmp))
+      amce.tab.list[[i]] <- tmp
+    }
+    names(amce.tab.list) <- names(data)
+    diff.party <- amce.tab.list[grepl("same party", names(amce.tab.list))==F&
+                                  grepl("Same Party", names(amce.tab.list))==F]
+    same.party <- amce.tab.list[grepl("same party", names(amce.tab.list))==T |
+                                  grepl("Same Party", names(amce.tab.list))==T]
+    to.add <- data.frame(AMCE = rep(NA, 4), ci.lo = rep(NA, 4), ci.hi =  rep(NA, 4),
+                         cluster.se =  rep(NA, 4),
+                         category =  diff.party[[1]]$category[1:4], 
+                         attribute =  diff.party[[1]]$attribute[1:4], 
+                         level = diff.party[[1]]$level[1:4],
+                         set = rep(NA, 4))
+    for(i in 1:length(data)){                     
+      if(grepl("same party", names(data)[i])==T|grepl("Same Party", names(data)[i])==T){
+        amce.tab.list[[i]] <- rbind(to.add,amce.tab.list[[i]])
+        amce.tab.list[[i]]$set[1:4] <-  amce.tab.list[[i]]$set[5:8]
+      }
+      else amce.tab.list[[i]] <- amce.tab.list[[i]]
+    }     
+    amce.tab <- do.call("rbind",amce.tab.list)
+    amce.tab$set <- factor(amce.tab$set)
+    return(amce.tab)
+  } 
+  if(multi == F)   {
+    get.amcetab(data, variables)
+  }
+  
+}
+
+
+### Figure 3: AMCEs for all attributes
+
+res <- amce.tab(data = long.dat, 
+                variables = c("mp.partypos", "mp.localroots", "mp.const", "mp.influence", "mp.policy", "mp.gender"),
+                multi = F)
+res$category <- factor(as.character(res$category), levels = rev(as.character(res$category)), order =T)
+#write.csv(res, "amce-all.csv")# write results to csv file
+
+# Full plot for all attributes
+res <- res[2:nrow(res),] # chop off top empty layer
+res <- subset(res, level != "baseline")# remove artificial 'baseline' rows
+labels <- labels.full
+ggplot(res, aes(x = category, y = AMCE, color = attribute)) + 
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
+  geom_pointrange(aes(ymin = ci.lo, ymax = ci.hi), size = 0.75) + 
+  labs(y = effect.label, x = "", title = "Component Effects\nWithout London") + 
+  coord_flip() + 
+  theme_bw() + 
+  theme(axis.text = element_text(colour = "black")) +
+  theme(legend.position = "none") +
+  theme(text = element_text(size = 15)) +
+  theme(axis.ticks.y = element_blank(), axis.text.y = element_text(hjust = 1), # remove ticks and justify
+        axis.title.x = element_text(size = 13, vjust = 0)) + 
+  scale_x_discrete(labels=labels)
+```
+
+```{r figure3extension2, warning = FALSE}
+
+#warning is false to delete warning for 11 deletions caused by ggplot which does not change vizualization from the paper. 
+
+#needed data
+
+long.dat <- readRDS(file = "paper_files/study2data_long.rds")
+
+long.dat <- long.dat %>% 
+  filter(region_GOR == "London")
+
+res <- amce.tab(data = long.dat, 
+                variables = c("mp.partypos", "mp.localroots", "mp.const", "mp.influence", "mp.policy", "mp.gender"),
+                multi = F)
+res$category <- factor(as.character(res$category), levels = rev(as.character(res$category)), order =T)
+#write.csv(res, "amce-all.csv")# write results to csv file
+
+
+# Full plot for all attributes
+res <- res[2:nrow(res),] # chop off top empty layer
+res <- subset(res, level != "baseline")# remove artificial 'baseline' rows
+labels <- labels.full
+ggplot(res, aes(x = category, y = AMCE, color = attribute)) + 
+  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
+  geom_pointrange(aes(ymin = ci.lo, ymax = ci.hi), size = 0.75) + 
+  labs(y = effect.label, x = "", title = "Component Effects\nLondon Only") + 
+  coord_flip() + 
+  theme_bw() + 
+  theme(axis.text = element_text(colour = "black")) +
+  theme(legend.position = "none") +
+  theme(text = element_text(size = 15)) +
+  theme(axis.ticks.y = element_blank(), axis.text.y = element_text(hjust = 1), # remove ticks and justify
+        axis.title.x = element_text(size = 13, vjust = 0)) + 
+  scale_x_discrete(labels=labels)
+
+```
+
+I also wanted to look at the urban/rural divide, so I compared London, the only completely urban region within the UK with the rest of the UK regions. These tables appear to be almost identical and can be compared to figure 3 of @paper. 
+
+These extensions hopefully better the article as a whole and clarify its implications. 
 
 \newpage
 
