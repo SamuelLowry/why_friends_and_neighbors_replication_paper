@@ -1,7 +1,7 @@
 ---
-title: "Milestone Six and a Half"
+title: "Milestone Eight"
 author: "Sam Lowry"
-date: "4/14/2020"
+date: "4/27/2020"
 output: bookdown::pdf_document2
 bibliography: bib.bib
 biblio-style: "apalike"
@@ -25,19 +25,12 @@ library(rms)
 library(reshape2)
 library(plyr)
 library(arm)
+library(huxtable)
+library(factorEx)
 library(rstanarm)
 ```
 
 # Introduction
-
-Alice Notes
-+ as.factor(region))plm())plm(y ~ x, data = mydata, within = “region”) no stan_glm for conjoint study, hetergeneouos effects, conjoint balance, effect of other attributes compared to one we care about, 
-
-sgtan_glm(voting ~ region*local_thing, data=data)
-
-1, stan glm for study 1
-2, look at party effects for study 1
-3, look at population effects for study 2
 
 @paper aims to answer the driving question of, "Why do politicians with strong local roots receive more electoral support?" by running and analyzing two separate studies. The first study uses a "paired profiles factorial vignette design" by asking subjects to rate hypothetical members of Parliament. The hypothetical members have varying levels of local roots as well as varying levels of "behavioral localism"—their track record of constituency service and if they act more so as a trustee or delegate. In the second study, subjects again considered hypothetical members of Parliament with varying levels of local roots. How, the subjects also received information on their political preferences and partisan loyalties. The first study depicted that the additional information swayed rankings, but local roots still seemed to have an association. The second study agreed with these results stating that, "even if voters are provided with a rich array of information about politicians’ behavior and ideological positioning, the effect of local roots remained positive and notable." The remainder of the article discusses the nuances of these results within the frame of the driving question.
 
@@ -47,6 +40,14 @@ Using R, I replicated @paper. The original code can be found in the \textit{The 
 
 Due to @paper being a very recent article, published May 6, 2019, there has not been any follow-up scholarly work on the topic even from the authors themselves. Nevertheless, @paper builds off of a rich history of the "friends and neighbors" effect which was first coined by @key. Other noteable works include @bowler and @garand which highlight the United States and @arzheimer as well as @arzheimer2 which highlight Britain. These two articles are particularly important due to @paper dealing with the "friends and neighbors" effect in the United Kingdom. These are just a couple of the noteable works. Of course, more in way of an actual review is to come.
 
+# Paper Review 
+
+@paper aims to answer the driving question of, "Why do politicians with strong local roots receive more electoral support?" by running and analyzing two separate studies. The first study uses a "paired profiles factorial vignette design" by asking subjects to rate hypothetical members of Parliament. The hypothetical members have varying levels of local roots as well as varying levels of "behavioral localism"—their track record of constituency service and if they act more so as a trustee or delegate. In the second study, subjects again considered hypothetical members of Parliament with varying levels of local roots. How, the subjects also received information on their political preferences and partisan loyalties. The first study depicted that the additional information swayed rankings, but local roots still seemed to have an association. The second study agreed with these results stating that, "even if voters are provided with a rich array of information about politicians’ behavior and ideological positioning, the effect of local roots remained positive and notable." The remainder of the article discusses the nuances of these results within the frame of the driving question.
+
+# Replication 
+
+Using R, I was able to replicate all of @paper. All of the code needed to do the same can be found within the Appendix. 
+
 # Extension
 
 I have already been able to replicate all of the results from \textit{Why Friends and Neighbors? Explaining the Electoral Appeal of Local Roots} @paper by Rosie Campbell, Philip Cowley, Nick Vivyan, and Markus Wagner in the \textit{The Journal of Politics}. The next step is to improve upon their methods and make suggests as to what to do next. My thoughts are below:
@@ -54,6 +55,9 @@ I have already been able to replicate all of the results from \textit{Why Friend
 1. Use stan_glm instead of lm for study 1
 2. Look at heterogeneous effects for study 1
 3. Look at population effects for study 2
+4. Use a pAMCE for study 2 instead of an AMCE
+
+## Study 1
 
 ```{r extension_data}
 #loaded in the data from the first study
@@ -71,7 +75,36 @@ stargazer(data.frame(m5), type="latex",
           digits = 3)
 ```
 
+
 Comparing this table to table 2 of @paper, there is not a change in regards to the treatment, but there is a notable difference specifically with the treatment having a greater effect on older people.
+
+```{r stan}
+stan_m1 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple, data = d, refresh = FALSE)
+
+stan_m2 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple +
+           gender + agegrp + socgrade + qual
+         , data = d, refresh = FALSE)
+
+stan_m3 <- stan_glm(nickminusphil ~ localtreat*behtreat, data = d)
+
+stan_m4 <- stan_glm(nickminusphil ~ localtreat*behtreat +
+           gender + agegrp + socgrade + qual
+         , data = d, refresh = FALSE)
+
+hux_1 <- huxreg("(1)" = stan_m1, 
+                "(2)" = stan_m2,
+                "(3)" = stan_m3,
+                "(4)" = stan_m4)
+
+hux_1 <- hux_1 %>%
+  set_caption('Models using stan_glm instead of lm')
+
+hux_1
+```
+
+Here, the four models are created using stan_glm instead of the traditional lm. The contents of the parentheses present the MAD SD and not a traditional standard error. 
+
+## Study 2
 
 ```{r figure3extension, warning = FALSE}
 
@@ -273,7 +306,30 @@ ggplot(res, aes(x = category, y = AMCE, color = attribute)) +
 
 I also wanted to look at the urban/rural divide, so I compared London, the only completely urban region within the UK with the rest of the UK regions. These tables appear to be almost identical and can be compared to figure 3 of @paper. 
 
+```{r pAMCE, eval= FALSE}
+
+pamce <- 
+      model_pAMCE(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender,
+                  data = long.dat,
+                  target_dist = 
+                  target_type = "marginal")
+
+data("OnoBurden")
+
+OnoBurden$target_dist_marginal
+
+view()
+```
+
+This has yet to be completed, but study 2 utilizes AMCE in their analysis of the conjoints. Nevertheless, as pointed out in @pamce, "MCE critically relies upon the distribution of the other attributes used for the averaging. Although most employ uniform distribution, which equally weights each profile, both the actual distribution of profiles in the real world and the distribution of theoretical interest are often far from uniform." Therefore they propose the use of pAMCE using the factorEx R package which takes population into account. I aim to utilize this instead of AMCE as a further extension. 
+
 These extensions hopefully better the article as a whole and clarify its implications. 
+
+\newpage
+
+#Conclusion
+
+There is little difference between the stan_glm and the lm. I have yet to figure out the pAMCE. More is to come!
 
 \newpage
 
@@ -287,7 +343,7 @@ These extensions hopefully better the article as a whole and clarify its implica
 
 # Appendix of Replicated Graphics
 
-I was able to replicate table 2, figure 1, and figure 3. I was unable to replicate table 1 and figure 2 because they were not data related. They were merely visualizations displaying content about methods and experimental design. Table 1 depicts written descriptions of the hypothetical Members of Parliament present to subject. Figure 2 depicts a screenshot of the survey. 
+I was able to replicate table 2, figure 1, and figure 3. They are below. I was unable to replicate table 1 and figure 2 because they were not data related. They were merely visualizations displaying content about methods and experimental design. Table 1 depicts written descriptions of the hypothetical Members of Parliament present to subject. Figure 2 depicts a screenshot of the survey. 
 
 ### Table 2 {-} 
 
@@ -329,7 +385,8 @@ stargazer(mget(paste0("m",1:4)),
           float = FALSE,
           dep.var.caption = "",
           dep.var.labels.include = FALSE,
-          title = "", 
+          title = "",
+          header = FALSE,
           #intercept.bottom = FALSE, intercept.top = TRUE,
           keep.stat = c("n", "rsq", "adj.rsq"),
           omit = "socgrade|agegrp|gender|qual",
@@ -352,7 +409,9 @@ stargazer(mget(paste0("m",1:4)),
 )
 ```
 
-### Figure 1 {-} 
+Note from @paper: "All models estimated via ordinary least squares. Dependent variable is respondent relative rating of MP Nick (the 0–10 rating of Nick minus that of Philip). Robust standard errors in parentheses. N p 5,203."
+
+### Figure 1 {-}
 
 ```{r figure1, warning = FALSE, cache = TRUE}
 
@@ -415,7 +474,7 @@ p1 <- ggplot(margins.comb, aes(x = factor, y = AME)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) + 
-  ggtitle("(b) Effect of MP local roots treatment") 
+  ggtitle("(b) Effect of MP local\ntreatment") 
 
 
 
@@ -475,7 +534,9 @@ pcomb <- plot_grid(p2, p1, align = "h", rel_widths = c(1,0.8))
 pcomb
 ```
 
-### Figure 3 {-} 
+Caption from @paper: "Figure 1. Effects of local roots conditional on behavioral information treatments (study 1). A, Predicted relative rating of MP Nick (MP Nick rating minus MP Philip rating) as the MP local roots treatment varies, with all control variables held constant at their modal value in the sample. Top, predicted values when respondents receive no information about MP behavioral localism. Middle, predicted values when respondents receive information about MP behavioral localism and Nick is revealed to be low in behavioral localism. Bottom, predicted values when respondents receive information about MP behavioral localism and Nick is revealed to be high in behavioral localism. For each of the same behavioral localism conditions, B show the estimated treatment effect of MP Nick having local roots. Estimates are calculated from model 4 in table 2. Open circles indicate point estimates. Lines denote 95% confidence intervals."
+
+### Figure 3 {-}
 
 ```{r figure3, warning = FALSE}
 
@@ -497,7 +558,7 @@ labels.full <- rev(expression(
   "", italic("MP sex (baseline = female)"), "male"))
 
 # for x axis
-effect.label <- "Change in probability of MP being preferred,\n relative to baseline"
+effect.label <- "Change in probability of MP being\npreferred relative to baseline"
 
 #needed functions
 
@@ -636,3 +697,4 @@ ggplot(res, aes(x = category, y = AMCE, color = attribute)) +
 
 ```
 
+Caption from @paper: "Figure 3. Estimated average marginal component effects of each MP attribute level compared to the baseline level of the attribute, estimated via ordinary least squares regression, with standard errors clustered by respondent. Bars show 95% confidence intervals"
