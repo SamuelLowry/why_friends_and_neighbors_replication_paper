@@ -5,6 +5,8 @@ date: "4/27/2020"
 output: bookdown::pdf_document2
 bibliography: bib.bib
 biblio-style: "apalike"
+fontsize: 12pt
+linestretch: 1.5
 abstract: Campbell et al. (2019) which details two separate experiments which suggest that individuals think of politicians with local roots and that exibit behavioral localism more highly. I was able to replicate the entire article with the exceptions of table 1 and figure 2 because they visuals relating to methodology and not the results themselves. I will be conducting an extension which includes the use of stan_glm instead of lm as well as look at certain subgroups based upon location and party identification. I hope to find cool things:)
 ---
 ```{r setup, include=FALSE}
@@ -28,6 +30,10 @@ library(arm)
 library(huxtable)
 library(factorEx)
 library(rstanarm)
+```
+
+```{r options}
+options(huxtable.print = "latex")
 ```
 
 # Introduction
@@ -57,52 +63,81 @@ I have already been able to replicate all of the results from \textit{Why Friend
 3. Look at population effects for study 2
 4. Use a pAMCE for study 2 instead of an AMCE
 
+\newpage
+
 ## Study 1
 
-```{r extension_data}
+```{r extensiondata}
 #loaded in the data from the first study
 
 d <- readRDS("paper_files/study1data.rds")
 ```
 
-```{r one_extension, results='asis'}
+<left>
+
+```{r stan, fig.cap= "Bayesian Generalized Linear Models", warning=FALSE, message=FALSE, fig.align= "l"}
+stan_m1 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple, data = d, refresh = FALSE)
+
+stan_m2 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple + gender + agegrp + socgrade + qual,
+                    data = d, 
+                    refresh = FALSE)
+
+stan_m3 <- stan_glm(nickminusphil ~ localtreat*behtreat, data = d, refresh = FALSE)
+
+stan_m4 <- stan_glm(nickminusphil ~ localtreat*behtreat + gender + agegrp + socgrade + qual,
+                    data = d, 
+                    refresh = FALSE)
+
+hux_1 <- huxreg(stan_m1, stan_m2, stan_m3, stan_m4,
+                statistics = NULL,
+                stars = NULL,
+                error_pos = "same",
+                coefs = c('Intercept' = '(Intercept)',
+                          "Has Local Roots" = "localtreatLocal roots",
+                          "Behavioral Info Given" = "behtreatsimpleBehavioural info",
+                          "Treatments Interaction" = "localtreatLocal roots:behtreatsimpleBehavioural info",
+                          "Male" = "genderMale",
+                          "25-49" = "agegrp25-49",
+                          "50-64" = "agegrp50-64",
+                          "65+" = "agegrp65+",
+                          "Skilled Working Class" = "socgradeC2",
+                          "Lower Middle Class" = "socgradeC1",
+                          "Middle Class" = "socgradeAB",
+                          "GCSE" = "qualLevel 1/2",
+                          "A Levels" = "qualLevel 3",
+                          "University" = "qualLevel 4",
+                          "Constituency Focus" = "behtreatConst. focus",
+                          "National Focus" = "behtreatWestmin. focus",
+                          "Local:Constituency" = "localtreatLocal roots:behtreatConst. focus",
+                          "Locanl:National" = "localtreatLocal roots:behtreatWestmin. focus"))
+
+hux_1 <- hux_1 %>%
+  set_caption('Bayesian Generalized Linear Models Instead of Linear Models')
+
+width(hux_1) <- 1
+
+hux_1
+```
+
+</left>
+
+Here, the four models are created using stan_glm instead of the traditional lm. The contents of the parentheses present the MAD SD and not a traditional standard error. 
+
+\newpage
+
+```{r oneextension, results='asis'}
 m5 <- stan_glm(nickminusphil ~ localtreat*behtreat + localtreat*agegrp
          , data = d, refresh = 0)
 
 stargazer(data.frame(m5), type="latex",
           title = "Model depicting Heterogeneous Effects",
           summary.stat = c("mean", "sd"),
-          digits = 3)
+          digits = 3,
+          header = FALSE)
 ```
 
 
 Comparing this table to table 2 of @paper, there is not a change in regards to the treatment, but there is a notable difference specifically with the treatment having a greater effect on older people.
-
-```{r stan}
-stan_m1 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple, data = d, refresh = FALSE)
-
-stan_m2 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple +
-           gender + agegrp + socgrade + qual
-         , data = d, refresh = FALSE)
-
-stan_m3 <- stan_glm(nickminusphil ~ localtreat*behtreat, data = d)
-
-stan_m4 <- stan_glm(nickminusphil ~ localtreat*behtreat +
-           gender + agegrp + socgrade + qual
-         , data = d, refresh = FALSE)
-
-hux_1 <- huxreg("(1)" = stan_m1, 
-                "(2)" = stan_m2,
-                "(3)" = stan_m3,
-                "(4)" = stan_m4)
-
-hux_1 <- hux_1 %>%
-  set_caption('Models using stan_glm instead of lm')
-
-hux_1
-```
-
-Here, the four models are created using stan_glm instead of the traditional lm. The contents of the parentheses present the MAD SD and not a traditional standard error. 
 
 ## Study 2
 
@@ -306,7 +341,7 @@ ggplot(res, aes(x = category, y = AMCE, color = attribute)) +
 
 I also wanted to look at the urban/rural divide, so I compared London, the only completely urban region within the UK with the rest of the UK regions. These tables appear to be almost identical and can be compared to figure 3 of @paper. 
 
-```{r pAMCE, eval= FALSE}
+```{r pAMCE, eval=FALSE}
 
 pamce <- 
       model_pAMCE(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender,
@@ -327,7 +362,7 @@ These extensions hopefully better the article as a whole and clarify its implica
 
 \newpage
 
-#Conclusion
+# Conclusion
 
 There is little difference between the stan_glm and the lm. I have yet to figure out the pAMCE. More is to come!
 
