@@ -11,7 +11,6 @@ abstract: Campbell et al. (2019) which details two separate experiments which su
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-library(tidyverse)
 library(bookdown)
 library(sandwich)
 library(lmtest)
@@ -29,7 +28,9 @@ library(plyr)
 library(arm)
 library(huxtable)
 library(factorEx)
+library(dotwhisker)
 library(rstanarm)
+library(tidyverse)
 ```
 
 ```{r options}
@@ -71,6 +72,8 @@ I have already been able to replicate all of the results from \textit{Why Friend
 #loaded in the data from the first study
 
 d <- readRDS("paper_files/study1data.rds")
+
+long.dat <- readRDS("paper_files/study2data_long.rds")
 ```
 
 <left>
@@ -109,7 +112,7 @@ hux_1 <- huxreg(stan_m1, stan_m2, stan_m3, stan_m4,
                           "Constituency Focus" = "behtreatConst. focus",
                           "National Focus" = "behtreatWestmin. focus",
                           "Local:Constituency" = "localtreatLocal roots:behtreatConst. focus",
-                          "Locanl:National" = "localtreatLocal roots:behtreatWestmin. focus"))
+                          "Local:National" = "localtreatLocal roots:behtreatWestmin. focus"))
 
 hux_1 <- hux_1 %>%
   set_caption('Bayesian Generalized Linear Models Instead of Linear Models')
@@ -117,7 +120,9 @@ hux_1 <- hux_1 %>%
 width(hux_1) <- 1
 
 hux_1
+
 ```
+
 
 </left>
 
@@ -125,236 +130,163 @@ Here, the four models are created using stan_glm instead of the traditional lm. 
 
 \newpage
 
-```{r oneextension, results='asis'}
-m5 <- stan_glm(nickminusphil ~ localtreat*behtreat + localtreat*agegrp
-         , data = d, refresh = 0)
+<left>
 
-stargazer(data.frame(m5), type="latex",
-          title = "Model depicting Heterogeneous Effects",
-          summary.stat = c("mean", "sd"),
-          digits = 3,
-          header = FALSE)
+```{r soc}
+
+d_d <- d %>% filter(socgrade == "DE")
+
+d_c2 <- d %>% filter(socgrade == "C2")
+
+d_c1 <- d %>% filter(socgrade == "C1")
+
+d_a <- d %>% filter(socgrade == "AB")
+
+stan_d <- stan_glm(nickminusphil ~ localtreat*behtreat,
+                    data = d_d, 
+                    refresh = FALSE)
+
+stan_c2 <- stan_glm(nickminusphil ~ localtreat*behtreat,
+                    data = d_c2, 
+                    refresh = FALSE)
+
+stan_c1 <- stan_glm(nickminusphil ~ localtreat*behtreat,
+                    data = d_c1, 
+                    refresh = FALSE)
+
+stan_a <- stan_glm(nickminusphil ~ localtreat*behtreat,
+                    data = d_a, 
+                    refresh = FALSE)
+
+dwplot(list(stan_a, stan_c1, stan_c2, stan_d),
+       dodge_size = .6) %>% 
+  relabel_predictors(c("(Intercept)" = "Intercept",                   
+                     "localtreatLocal roots" = "Local Roots (Baseline = None) \nLocal Roots",          
+                     "behtreatConst. focus" = "Behavioral Information (Baseline = None) \nConstituency Focus",
+                     "behtreatWestmin. focus" = "National Focus",
+                     "localtreatLocal roots:behtreatConst. focus" = "Interaction Terms \nLocal:Constituency Focus",
+                     "localtreatLocal roots:behtreatWestmin. focus" = "Local:National Focus")) + 
+  geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+  scale_colour_hue(name = "Social Class",
+                     labels = c("Middle", "Lower Middle", "Skilled Working", "Unskilled Working")) +
+  theme(legend.text = element_text(size = 6),
+        legend.title = element_text(size = 8),
+        legend.position = c(.163, .81)) +
+  labs(title = "Treatment Coefficients Across Social Classes",
+       x = "Coefficient Value")
+
 ```
 
+</left>
 
-Comparing this table to table 2 of @paper, there is not a change in regards to the treatment, but there is a notable difference specifically with the treatment having a greater effect on older people.
+\newpage
 
 ## Study 2
 
-```{r figure3extension, warning = FALSE}
-
-#warning is false to delete warning for 11 deletions caused by ggplot which does not change vizualization from the paper. 
-
-#needed data
-
-long.dat <- readRDS(file = "paper_files/study2data_long.rds")
-
-long.dat <- long.dat %>% 
-  filter(!region_GOR == "London")
-
-### Create labels for plotting
-
-# for full results
-labels.full <- rev(expression(
-  "", italic("Party & position (baseline = Labour left-wing)"), "Labour centre", "Conservative centre", "Conservative right-wing",
-  "", italic("Local roots (baseline = lives elsewhere)"),"5 years in area", "20 years in area", "Grew up and lives in area", 
-  "", italic("Constituency work (baseline = 1 day)"), "2 days", "3 days", "4 days",
-  "", italic("Main policy influence (baseline = party)"), "constituents' views","own personal views",
-  "", italic("Policy interests (baseline = economy and tax)"), "education and health",
-  "", italic("MP sex (baseline = female)"), "male"))
-
-# for x axis
-effect.label <- "Change in probability of MP being preferred,\n relative to baseline"
-
-#needed functions
-
-add.top <- function(df, new.level){
-  to.add <- data.frame(mean = c(NA,NA, 0), ci.lo = c(NA,NA, 0), ci.hi = c(NA,NA, 0),
-                       category = rep("", 3), attribute = rep(df$attribute[1],3),
-                       level = c("", " ", new.level))
-  return(rbind(to.add, df))
-}
-add.justify <- function(df){
-  df$left.justify <- rep(0, nrow(df))
-  df$left.justify[2] <- 1
-  return(df)
-}
-
-## Function to get regression-based AMCE estimates for each attribute level using 
-## OLS estimator with clustered SEs (Hainmueller, Hopkins and Yammamoto 2014)
-
-#Note to read up on the other literature above
-
-get.amcetab <- function(data, variables, J = 2){    
-  Nvar <- length(variables)
-  amce.list <- vector("list", length = Nvar)
-  
-  for(i in 1:Nvar){ # get AMCE for each variable attribute
-    fmla <- as.formula(paste("mp.preferred ~ ",variables[i], sep = ""))
-    model <- ols(fmla, data = data, x = T, y = T) 
-    # NOTE: The data for the model has to have no NAs on any model variables 
-    # for the robcov(cluster()) function to work 
-    model.clus <- robcov(model, cluster = data$ID, method = "efron")
-    coef <- model.clus$coef[names(model.clus$coef)!="Intercept"]
-    se.clus <- sqrt(diag(model.clus$var))
-    se.clus <- se.clus[names(se.clus)!="Intercept"]       
-    sub.tab <- data.frame("AMCE" = coef, 
-                          "ci.lo" = coef - (1.96*se.clus),
-                          "ci.hi" = coef + (1.96*se.clus),
-                          "cluster.se" = se.clus)
-    sub.tab$category <- names(coef)
-    sub.tab <- cbind(sub.tab, colsplit(sub.tab$category, "=", c("attribute","level")))
-    sub.tab$level <- as.character(sub.tab$level)    
-    row.names(sub.tab) <- NULL
-    # add in gaps and baselines
-    to.add <- data.frame(AMCE = c(NA,NA, 0), ci.lo = c(NA,NA, 0), ci.hi = c(NA,NA, 0),
-                         cluster.se = c(NA,NA, 0),
-                         category = rep("", 3), attribute = rep(sub.tab$attribute[1],3),
-                         level = c("", " ", "baseline"))
-    amce.list [[i]] <- rbind(to.add, sub.tab)
-  } 
-  amce.tab <- do.call("rbind", amce.list)
-  # re-make initial labels column
-  amce.tab$category <- paste(amce.tab$attribute, amce.tab$level, sep = ": ")
-  # make this into ordered factor
-  amce.tab$category <- factor(amce.tab$category, levels = rev(amce.tab$category), order =T)    
-  
-  return(amce.tab)
-}
-
-## Function that calls get.amcetab for multiple predictors and combines results
-
-amce.tab <- function(data, variables, multi = F, same.party = F){
-  # data must be a single data frame or a list of data frames (if multi = T)
-  # with named elements
-  # Also relies on specific ordering of explanatory variables
-  if(multi == T & same.party == F){
-    amce.tab.list <- list(NA, length = length(data))
-    for(i in 1:length(data)){
-      tmp <- get.amcetab(data[[i]], variables = variables)
-      tmp$set <- rep(names(data)[i], nrow(tmp))
-      amce.tab.list[[i]] <- tmp
-    }
-    amce.tab <- do.call("rbind",amce.tab.list)
-    amce.tab$set <- factor(amce.tab$set)
-    return(amce.tab)
-  }
-  if(multi == T & same.party == T){
-    amce.tab.list <- list(NA, length = length(data))
-    for(i in 1:length(data)){
-      vars <- if(grepl("same party", names(data)[i])==T|grepl("Same Party", names(data)[i])==T) variables[2:length(variables)] else variables
-      tmp <- get.amcetab(data[[i]], variables = vars)
-      tmp$set <- rep(names(data)[i], nrow(tmp))
-      amce.tab.list[[i]] <- tmp
-    }
-    names(amce.tab.list) <- names(data)
-    diff.party <- amce.tab.list[grepl("same party", names(amce.tab.list))==F&
-                                  grepl("Same Party", names(amce.tab.list))==F]
-    same.party <- amce.tab.list[grepl("same party", names(amce.tab.list))==T |
-                                  grepl("Same Party", names(amce.tab.list))==T]
-    to.add <- data.frame(AMCE = rep(NA, 4), ci.lo = rep(NA, 4), ci.hi =  rep(NA, 4),
-                         cluster.se =  rep(NA, 4),
-                         category =  diff.party[[1]]$category[1:4], 
-                         attribute =  diff.party[[1]]$attribute[1:4], 
-                         level = diff.party[[1]]$level[1:4],
-                         set = rep(NA, 4))
-    for(i in 1:length(data)){                     
-      if(grepl("same party", names(data)[i])==T|grepl("Same Party", names(data)[i])==T){
-        amce.tab.list[[i]] <- rbind(to.add,amce.tab.list[[i]])
-        amce.tab.list[[i]]$set[1:4] <-  amce.tab.list[[i]]$set[5:8]
-      }
-      else amce.tab.list[[i]] <- amce.tab.list[[i]]
-    }     
-    amce.tab <- do.call("rbind",amce.tab.list)
-    amce.tab$set <- factor(amce.tab$set)
-    return(amce.tab)
-  } 
-  if(multi == F)   {
-    get.amcetab(data, variables)
-  }
-  
-}
-
-
-### Figure 3: AMCEs for all attributes
-
-res <- amce.tab(data = long.dat, 
-                variables = c("mp.partypos", "mp.localroots", "mp.const", "mp.influence", "mp.policy", "mp.gender"),
-                multi = F)
-res$category <- factor(as.character(res$category), levels = rev(as.character(res$category)), order =T)
-#write.csv(res, "amce-all.csv")# write results to csv file
-
-# Full plot for all attributes
-res <- res[2:nrow(res),] # chop off top empty layer
-res <- subset(res, level != "baseline")# remove artificial 'baseline' rows
-labels <- labels.full
-ggplot(res, aes(x = category, y = AMCE, color = attribute)) + 
-  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
-  geom_pointrange(aes(ymin = ci.lo, ymax = ci.hi), size = 0.75) + 
-  labs(y = effect.label, x = "", title = "Component Effects\nWithout London") + 
-  coord_flip() + 
-  theme_bw() + 
-  theme(axis.text = element_text(colour = "black")) +
-  theme(legend.position = "none") +
-  theme(text = element_text(size = 15)) +
-  theme(axis.ticks.y = element_blank(), axis.text.y = element_text(hjust = 1), # remove ticks and justify
-        axis.title.x = element_text(size = 13, vjust = 0)) + 
-  scale_x_discrete(labels=labels)
-```
-
-```{r figure3extension2, warning = FALSE}
-
-#warning is false to delete warning for 11 deletions caused by ggplot which does not change vizualization from the paper. 
-
-#needed data
-
-long.dat <- readRDS(file = "paper_files/study2data_long.rds")
-
-long.dat <- long.dat %>% 
-  filter(region_GOR == "London")
-
-res <- amce.tab(data = long.dat, 
-                variables = c("mp.partypos", "mp.localroots", "mp.const", "mp.influence", "mp.policy", "mp.gender"),
-                multi = F)
-res$category <- factor(as.character(res$category), levels = rev(as.character(res$category)), order =T)
-#write.csv(res, "amce-all.csv")# write results to csv file
-
-
-# Full plot for all attributes
-res <- res[2:nrow(res),] # chop off top empty layer
-res <- subset(res, level != "baseline")# remove artificial 'baseline' rows
-labels <- labels.full
-ggplot(res, aes(x = category, y = AMCE, color = attribute)) + 
-  geom_hline(yintercept = 0, linetype = "dashed", size = 0.5) +
-  geom_pointrange(aes(ymin = ci.lo, ymax = ci.hi), size = 0.75) + 
-  labs(y = effect.label, x = "", title = "Component Effects\nLondon Only") + 
-  coord_flip() + 
-  theme_bw() + 
-  theme(axis.text = element_text(colour = "black")) +
-  theme(legend.position = "none") +
-  theme(text = element_text(size = 15)) +
-  theme(axis.ticks.y = element_blank(), axis.text.y = element_text(hjust = 1), # remove ticks and justify
-        axis.title.x = element_text(size = 13, vjust = 0)) + 
-  scale_x_discrete(labels=labels)
-
-```
 
 I also wanted to look at the urban/rural divide, so I compared London, the only completely urban region within the UK with the rest of the UK regions. These tables appear to be almost identical and can be compared to figure 3 of @paper. 
 
-```{r pAMCE, eval=FALSE}
+<left>
 
-pamce <- 
-      model_pAMCE(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender,
-                  data = long.dat,
-                  target_dist = 
-                  target_type = "marginal")
+```{r conjoint}
 
-data("OnoBurden")
+long.dat_18 <- long.dat %>% filter(age_grouped == "18-24")
 
-OnoBurden$target_dist_marginal
+long.dat_25 <- long.dat %>% filter(age_grouped == "25-39")
 
-view()
+long.dat_40 <- long.dat %>% filter(age_grouped == "40-59")
+
+long.dat_60 <- long.dat %>% filter(age_grouped == "60+")
+
+conjoint_18 <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat_18)
+
+conjoint_25 <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat_25)
+
+conjoint_40 <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat_40)
+
+conjoint_60 <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat_60)
+
+
+dwplot(list(conjoint_18, conjoint_25, conjoint_40, conjoint_60),
+       dodge_size = .6) %>% 
+  relabel_predictors(c("(Intercept)" = "Intercept",                   
+                     "mp.partyposLabour centre" = "Party (Baseline = Labour Left-wing) \nLabour Centre",          
+                     "mp.partyposConservative centre" = "Conservative Centre",
+                     "mp.partyposConservative right-wing" = "Conservative Right-wing",
+                     "mp.localroots5 years in area" = "Local Roots (Baseline = Lives Elsewhere) \n5 Years in Area",
+                     "mp.localroots20 years in area" = "20 years in area",
+                     "mp.localrootsGrew up and lives in area" = "Grew up and Lives in Area",
+                     "mp.const2 days" = "Constituency Work (Baseline = 1 Day) \n 2 days",
+                     "mp.const3 days" = "3 Days",
+                     "mp.const4 days" = "4 Days",
+                     "mp.influenceConstituents" = "Policy Influence (Baseline = Party) \nConstituents' Views",
+                     "mp.influenceOwn personal" = "Own Personal Views",
+                     "mp.policyEducation and health" = "Policy Focus (Baseline = Economy and Tax) \nEducation and Health",
+                     "mp.genderMale" = "Sex (Baseline = Female) \nMale")) + 
+  geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+  scale_colour_hue(name = "Age Group",
+                     labels = c("18-24", "25-39", "40-59", "60+")) +
+  theme(legend.position = c(.155, .5)) +
+  labs(title = "Average Marginal Component Effects \nby Age Group",
+       x = "Change in Probability of MP Being Preferred")
+
 ```
+
+</left>
+
+
+
+
+
+
+
+
+<left>
+
+```{r conjoint interaction, fig.height = 6}
+
+conjoint <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat)
+
+
+#This is interesting because is shows that we see less care about policy influence with increase in local roots
+
+conjoint_interaction <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender + mp.localroots:mp.influence,
+                           data = long.dat)
+
+#grew up significant at 95% confidence for both
+
+dwplot(list(conjoint, conjoint_interaction)) %>% 
+   relabel_predictors(c("(Intercept)" = "Intercept",                   
+                     "mp.partyposLabour centre" = "Party (Baseline = Labour Left-wing) \nLabour Centre",          
+                     "mp.partyposConservative centre" = "Conservative Centre",
+                     "mp.partyposConservative right-wing" = "Conservative Right-wing",
+                     "mp.localroots5 years in area" = "Local Roots (Baseline = Lives Elsewhere) \n5 Years in Area",
+                     "mp.localroots20 years in area" = "20 years in area",
+                     "mp.localrootsGrew up and lives in area" = "Grew up and Lives in Area",
+                     "mp.const2 days" = "Constituency Work (Baseline = 1 Day) \n 2 days",
+                     "mp.const3 days" = "3 Days",
+                     "mp.const4 days" = "4 Days",
+                     "mp.influenceConstituents" = "Policy Influence (Baseline = Party) \nConstituents' Views",
+                     "mp.influenceOwn personal" = "Own Personal Views",
+                     "mp.policyEducation and health" = "Policy Focus (Baseline = Economy and Tax) \nEducation and Health",
+                     "mp.genderMale" = "Sex (Baseline = Female) \nMale",
+                     "mp.localroots5 years in area:mp.influenceConstituents" = "Interaction Terms \n5 Years:Constituents' Views",
+                     "mp.localroots20 years in area:mp.influenceConstituents" = "20 Years:Constituents' Views",
+                     "mp.localrootsGrew up and lives in area:mp.influenceConstituents" = "Grew up:Constituents' Views",
+                     "mp.localroots5 years in area:mp.influenceOwn personal" = "5 Years:Own Personal",
+                     "mp.localroots20 years in area:mp.influenceOwn personal" = "20 Years:Own Personal",
+                     "mp.localrootsGrew up and lives in area:mp.influenceOwn personal" = "Grew up:Own Personal")) +
+  geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+  scale_colour_hue(name = "AMCE Type",
+                     labels = c("Without \nInteraction Terms", "With \nInteraction Terms")) +
+  theme(legend.text = element_text(size = 8),
+        legend.title = element_text(size = 10),
+        legend.position = c(.18, .7)) +
+  labs(title = "Average Marginal Component Effects with Interaction",
+       x = "Change in Probability of MP Being Preferred")
+```
+
+</left>
 
 This has yet to be completed, but study 2 utilizes AMCE in their analysis of the conjoints. Nevertheless, as pointed out in @pamce, "MCE critically relies upon the distribution of the other attributes used for the averaging. Although most employ uniform distribution, which equally weights each profile, both the actual distribution of profiles in the real world and the distribution of theoretical interest are often far from uniform." Therefore they propose the use of pAMCE using the factorEx R package which takes population into account. I aim to utilize this instead of AMCE as a further extension. 
 
@@ -573,7 +505,7 @@ Caption from @paper: "Figure 1. Effects of local roots conditional on behavioral
 
 ### Figure 3 {-}
 
-```{r figure3, warning = FALSE}
+```{r figure3, warning = FALSE, fig.cap="Figure 3. Estimated average marginal component effects of each MP attribute level compared to the baseline level of the attribute, estimated via ordinary least squares regression, with standard errors clustered by respondent. Bars show 95% confidence intervals"}
 
 #warning is false to delete warning for 11 deletions caused by ggplot which does not change vizualization from the paper. 
 
