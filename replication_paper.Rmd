@@ -1,12 +1,16 @@
 ---
-title: "Milestone Eight"
-author: "Sam Lowry"
-date: "4/27/2020"
+title: 'Replication and Extension of "Why Friends and Neighbors? Explaining the Electoral Appeal of Local Roots"'
+author: "Samuel Lowry"
+date: "05/12/2020"
+header-includes:
+  \usepackage{caption}
+  \captionsetup[figure]{labelformat=empty}
 output: bookdown::pdf_document2
 bibliography: bib.bib
 biblio-style: "apalike"
 fontsize: 12pt
 linestretch: 1.5
+toc: false
 abstract: Campbell et al. (2019) which details two separate experiments which suggest that individuals think of politicians with local roots and that exibit behavioral localism more highly. I was able to replicate the entire article with the exceptions of table 1 and figure 2 because they visuals relating to methodology and not the results themselves. I will be conducting an extension which includes the use of stan_glm instead of lm as well as look at certain subgroups based upon location and party identification. I hope to find cool things:)
 ---
 ```{r setup, include=FALSE}
@@ -34,28 +38,35 @@ library(tidyverse)
 ```
 
 ```{r options}
+
+#needed for correct huxtable output
+
 options(huxtable.print = "latex")
+
+#Seed set for entire document in honor of the class. 
+
+set.seed(1006)
 ```
 
-# Introduction
+# Introduction {-} 
 
 @paper aims to answer the driving question of, "Why do politicians with strong local roots receive more electoral support?" by running and analyzing two separate studies. The first study uses a "paired profiles factorial vignette design" by asking subjects to rate hypothetical members of Parliament. The hypothetical members have varying levels of local roots as well as varying levels of "behavioral localism"—their track record of constituency service and if they act more so as a trustee or delegate. In the second study, subjects again considered hypothetical members of Parliament with varying levels of local roots. How, the subjects also received information on their political preferences and partisan loyalties. The first study depicted that the additional information swayed rankings, but local roots still seemed to have an association. The second study agreed with these results stating that, "even if voters are provided with a rich array of information about politicians’ behavior and ideological positioning, the effect of local roots remained positive and notable." The remainder of the article discusses the nuances of these results within the frame of the driving question.
 
 Using R, I replicated @paper. The original code can be found in the \textit{The Journal of Politics} Dataverse.^[https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/C15VOD] All of my code for this paper including the extension is available in my Github repository.^[https://github.com/SamuelLowry/why_friends_and_neighbors_replication_paper.git]
 
-# Literature Review
+# Literature Review {-} 
 
 Due to @paper being a very recent article, published May 6, 2019, there has not been any follow-up scholarly work on the topic even from the authors themselves. Nevertheless, @paper builds off of a rich history of the "friends and neighbors" effect which was first coined by @key. Other noteable works include @bowler and @garand which highlight the United States and @arzheimer as well as @arzheimer2 which highlight Britain. These two articles are particularly important due to @paper dealing with the "friends and neighbors" effect in the United Kingdom. These are just a couple of the noteable works. Of course, more in way of an actual review is to come.
 
-# Paper Review 
+# Paper Review {-} 
 
 @paper aims to answer the driving question of, "Why do politicians with strong local roots receive more electoral support?" by running and analyzing two separate studies. The first study uses a "paired profiles factorial vignette design" by asking subjects to rate hypothetical members of Parliament. The hypothetical members have varying levels of local roots as well as varying levels of "behavioral localism"—their track record of constituency service and if they act more so as a trustee or delegate. In the second study, subjects again considered hypothetical members of Parliament with varying levels of local roots. How, the subjects also received information on their political preferences and partisan loyalties. The first study depicted that the additional information swayed rankings, but local roots still seemed to have an association. The second study agreed with these results stating that, "even if voters are provided with a rich array of information about politicians’ behavior and ideological positioning, the effect of local roots remained positive and notable." The remainder of the article discusses the nuances of these results within the frame of the driving question.
 
-# Replication 
+# Replication {-} 
 
 Using R, I was able to replicate all of @paper. All of the code needed to do the same can be found within the Appendix. 
 
-# Extension
+# Extension {-} 
 
 I have already been able to replicate all of the results from \textit{Why Friends and Neighbors? Explaining the Electoral Appeal of Local Roots} @paper by Rosie Campbell, Philip Cowley, Nick Vivyan, and Markus Wagner in the \textit{The Journal of Politics}. The next step is to improve upon their methods and make suggests as to what to do next. My thoughts are below:
 
@@ -64,12 +75,11 @@ I have already been able to replicate all of the results from \textit{Why Friend
 3. Look at population effects for study 2
 4. Use a pAMCE for study 2 instead of an AMCE
 
-\newpage
-
-## Study 1
+## Study 1 {-} 
 
 ```{r extensiondata}
-#loaded in the data from the first study
+
+#loaded in the data from the studies
 
 d <- readRDS("paper_files/study1data.rds")
 
@@ -78,8 +88,14 @@ long.dat <- readRDS("paper_files/study2data_long.rds")
 
 <left>
 
-```{r stan, fig.cap= "Bayesian Generalized Linear Models", warning=FALSE, message=FALSE, fig.align= "l"}
-stan_m1 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple, data = d, refresh = FALSE)
+```{r study1table, fig.cap= "Bayesian Generalized Linear Models", warning=FALSE, message=FALSE, fig.align= "l"}
+
+#recreated all of the models found in "Why Friends and Neighbors" but using stan_glm instead
+#refresh is false to avoid the long output that comes with stan_glm normally. 
+
+stan_m1 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple,
+                    data = d,
+                    refresh = FALSE)
 
 stan_m2 <- stan_glm(nickminusphil ~ localtreat*behtreatsimple + gender + agegrp + socgrade + qual,
                     data = d, 
@@ -90,6 +106,12 @@ stan_m3 <- stan_glm(nickminusphil ~ localtreat*behtreat, data = d, refresh = FAL
 stan_m4 <- stan_glm(nickminusphil ~ localtreat*behtreat + gender + agegrp + socgrade + qual,
                     data = d, 
                     refresh = FALSE)
+
+#huxtabe compiling all of the models
+#Statistics and stars are null in order to avoid issues around significance as
+#this is not a standard lm model.
+#Errors on same level as coefficients in order to save space.
+#Renamed all coefficients for presentability.
 
 hux_1 <- huxreg(stan_m1, stan_m2, stan_m3, stan_m4,
                 statistics = NULL,
@@ -114,6 +136,8 @@ hux_1 <- huxreg(stan_m1, stan_m2, stan_m3, stan_m4,
                           "Local:Constituency" = "localtreatLocal roots:behtreatConst. focus",
                           "Local:National" = "localtreatLocal roots:behtreatWestmin. focus"))
 
+#Printing huxtable with caption and defined width
+
 hux_1 <- hux_1 %>%
   set_caption('Bayesian Generalized Linear Models Instead of Linear Models')
 
@@ -128,11 +152,12 @@ hux_1
 
 Here, the four models are created using stan_glm instead of the traditional lm. The contents of the parentheses present the MAD SD and not a traditional standard error. 
 
-\newpage
 
 <left>
 
-```{r soc}
+```{r study1figure}
+
+#Subsetting based upon class
 
 d_d <- d %>% filter(socgrade == "DE")
 
@@ -141,6 +166,8 @@ d_c2 <- d %>% filter(socgrade == "C2")
 d_c1 <- d %>% filter(socgrade == "C1")
 
 d_a <- d %>% filter(socgrade == "AB")
+
+#creating model from treatment variable with interaction based upon each class.
 
 stan_d <- stan_glm(nickminusphil ~ localtreat*behtreat,
                     data = d_d, 
@@ -157,6 +184,13 @@ stan_c1 <- stan_glm(nickminusphil ~ localtreat*behtreat,
 stan_a <- stan_glm(nickminusphil ~ localtreat*behtreat,
                     data = d_a, 
                     refresh = FALSE)
+
+#dot whisker plots in order to show coefficients. 
+#dodge size in order to better separate models on chart for readablility.
+#Relabled coefficients. 
+#added line at 0 to better show sign of coefficient
+#Adjusting legend for readability and position.
+#Labeled appropriatley
 
 dwplot(list(stan_a, stan_c1, stan_c2, stan_d),
        dodge_size = .6) %>% 
@@ -179,16 +213,16 @@ dwplot(list(stan_a, stan_c1, stan_c2, stan_d),
 
 </left>
 
-\newpage
-
-## Study 2
+## Study 2 {-} 
 
 
 I also wanted to look at the urban/rural divide, so I compared London, the only completely urban region within the UK with the rest of the UK regions. These tables appear to be almost identical and can be compared to figure 3 of @paper. 
 
 <left>
 
-```{r conjoint}
+```{r study2hetero}
+
+#subsetting based upon age. 
 
 long.dat_18 <- long.dat %>% filter(age_grouped == "18-24")
 
@@ -198,6 +232,8 @@ long.dat_40 <- long.dat %>% filter(age_grouped == "40-59")
 
 long.dat_60 <- long.dat %>% filter(age_grouped == "60+")
 
+#conjoint models for each of the subsets 
+
 conjoint_18 <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat_18)
 
 conjoint_25 <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat_25)
@@ -206,6 +242,12 @@ conjoint_40 <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.cons
 
 conjoint_60 <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat_60)
 
+#dot whisker plot showing the coefficients 
+#dodge size in order to better separate models on chart for readablility.
+#Relabled coefficients. 
+#added line at 0 to better show sign of coefficient
+#Adjusting legend for readability and position.
+#Labeled appropriatley
 
 dwplot(list(conjoint_18, conjoint_25, conjoint_40, conjoint_60),
        dodge_size = .6) %>% 
@@ -243,17 +285,26 @@ dwplot(list(conjoint_18, conjoint_25, conjoint_40, conjoint_60),
 
 <left>
 
-```{r conjoint interaction, fig.height = 6}
+```{r study2interaction, fig.height = 6}
+
+#recreation of AMCE from the paper.
 
 conjoint <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender, data = long.dat)
 
 
-#This is interesting because is shows that we see less care about policy influence with increase in local roots
+#added an interesting interaction term This is interesting because is shows that
+#we see less care about policy influence with increase in local roots
 
 conjoint_interaction <- lm(formula = mp.preferred ~ mp.partypos + mp.localroots + mp.const + mp.influence + mp.policy + mp.gender + mp.localroots:mp.influence,
                            data = long.dat)
 
-#grew up significant at 95% confidence for both
+#grew up significant at 95% confidence for both interaction terms
+
+#dot whisker plot showing the coefficients 
+#Relabled coefficients. 
+#added line at 0 to better show sign of coefficient
+#Adjusting legend for readability and position.
+#Labeled appropriatley
 
 dwplot(list(conjoint, conjoint_interaction)) %>% 
    relabel_predictors(c("(Intercept)" = "Intercept",                   
@@ -281,8 +332,8 @@ dwplot(list(conjoint, conjoint_interaction)) %>%
                      labels = c("Without \nInteraction Terms", "With \nInteraction Terms")) +
   theme(legend.text = element_text(size = 8),
         legend.title = element_text(size = 10),
-        legend.position = c(.18, .7)) +
-  labs(title = "Average Marginal Component Effects with Interaction",
+        legend.position = c(.19, .7)) +
+  labs(title = "Average Marginal Component Effects \nwith Interaction",
        x = "Change in Probability of MP Being Preferred")
 ```
 
@@ -294,13 +345,13 @@ These extensions hopefully better the article as a whole and clarify its implica
 
 \newpage
 
-# Conclusion
+# Conclusion {-} 
 
 There is little difference between the stan_glm and the lm. I have yet to figure out the pAMCE. More is to come!
 
 \newpage
 
-# References
+# References {-} 
 
 <div id="refs"></div>
 
@@ -308,25 +359,25 @@ There is little difference between the stan_glm and the lm. I have yet to figure
 
 # (APPENDIX) Appendix {-} 
 
-# Appendix of Replicated Graphics
+# Appendix of Replicated Graphics {-} 
 
-I was able to replicate table 2, figure 1, and figure 3. They are below. I was unable to replicate table 1 and figure 2 because they were not data related. They were merely visualizations displaying content about methods and experimental design. Table 1 depicts written descriptions of the hypothetical Members of Parliament present to subject. Figure 2 depicts a screenshot of the survey. 
+I was able to replicate Table 2, Figure 1, and Figure 3. They are below. I was unable to replicate Table 1 and Figure 2 because they were not data related. They were merely visualizations displaying content about methods and experimental design. Table 1 depicts written descriptions of the hypothetical Members of Parliament present to subject. Figure 2 depicts a screenshot of the survey. 
 
-### Table 2 {-} 
+## Table 2 {-} 
 
-```{r data}
+```{r appendixdata}
 #loaded in the data from the first study
 
 d <- readRDS("paper_files/study1data.rds")
 
 ```
 
-```{r table2, warning=FALSE, results='asis'}
+```{r appendixtable2, warning=FALSE,out.height=6, results='asis'}
 #warning = FALSE in order to get rid of unknown variable due to their code being wacl
 
-#Here I pulled over their code but then tried to improve upon it, for currently the figure is unreadable. 
-
 #models for this graphic and the table later on
+
+#the standard error calculations are for their robust standard errors
 
 m1 <- lm(nickminusphil ~ localtreat*behtreatsimple, data = d)
 se1 <- sqrt(diag(vcovHC(m1)))
@@ -356,6 +407,7 @@ stargazer(mget(paste0("m",1:4)),
           header = FALSE,
           #intercept.bottom = FALSE, intercept.top = TRUE,
           keep.stat = c("n", "rsq", "adj.rsq"),
+          no.space = TRUE, 
           omit = "socgrade|agegrp|gender|qual",
           order = c("Constant", "^localtreatLocal roots$", 
                     "^behtreatsimpleBehavioural info$", 
@@ -372,15 +424,14 @@ stargazer(mget(paste0("m",1:4)),
                                "Behavioral localism: Low (vs. no info)",
                                "Local roots X Behavioral info.", 
                                "Local roots X High behavioral localism",
-                               "Local roots X Low behavioral localism")
-)
+                               "Local roots X Low behavioral localism"))
 ```
 
-Note from @paper: "All models estimated via ordinary least squares. Dependent variable is respondent relative rating of MP Nick (the 0–10 rating of Nick minus that of Philip). Robust standard errors in parentheses. N p 5,203."
+Caption from @paper: "All models estimated via ordinary least squares. Dependent variable is respondent relative rating of MP Nick (the 0–10 rating of Nick minus that of Philip). Robust standard errors in parentheses. N = 5,203."
 
 ### Figure 1 {-}
 
-```{r figure1, warning = FALSE, cache = TRUE}
+```{r appendixfigure1, warning = FALSE, cache = TRUE, fig.cap="Figure 1. Effects of local roots conditional on behavioral information treatments (study 1). A, Predicted relative rating of MP Nick (MP Nick rating minus MP Philip rating) as the MP local roots treatment varies, with all control variables held constant at their modal value in the sample. Top, predicted values when respondents receive no information about MP behavioral localism. Middle, predicted values when respondents receive information about MP behavioral localism and Nick is revealed to be low in behavioral localism. Bottom, predicted values when respondents receive information about MP behavioral localism and Nick is revealed to be high in behavioral localism. For each of the same behavioral localism conditions, B show the estimated treatment effect of MP Nick having local roots. Estimates are calculated from model 4 in table 2. Open circles indicate point estimates. Lines denote 95% confidence intervals."}
 
 #warning is false to delete warning for unknown variable specified in code which does not change vizualization from the paper. 
 
@@ -413,7 +464,6 @@ predict.rob <- function(object, vcov,newdata){
 
 
 ### Figure 1
-#I was very confused about B here especially because of the variability and the "no information" section being higher. 
 ## Avg treatment effect of local roots with const and westmihn. info
 out <- summary(margins(m4, vcov = vcovHC(m4), 
                        at = list(behtreat = c("No behavioural info", "Const. focus", "Westmin. focus"))))
@@ -447,7 +497,6 @@ p1 <- ggplot(margins.comb, aes(x = factor, y = AME)) +
 
 
 ## predlevels for m4
-#what is m4???
 newdf <- data.frame(expand.grid(localtreat = factor(c("No local roots", "Local roots"), 
                                                     levels = levels(d$localtreat)),
                                 behtreat = factor(levels(d$behtreat), levels = levels(d$behtreat))
@@ -470,7 +519,6 @@ predlevels.m4 <- newdf
 
 
 ## make predlevels plot
-#okay this is still the first plot. B still confuses me though. 
 predlevels.comb <- predlevels.m4
 predlevels.comb$behtreat.neat <- car:::recode(predlevels.comb$behtreat, 
                                               '"No behavioural info" = "Behavioral information treatment --\\nNo information (Vignettes 1-2)";
@@ -501,11 +549,11 @@ pcomb <- plot_grid(p2, p1, align = "h", rel_widths = c(1,0.8))
 pcomb
 ```
 
-Caption from @paper: "Figure 1. Effects of local roots conditional on behavioral information treatments (study 1). A, Predicted relative rating of MP Nick (MP Nick rating minus MP Philip rating) as the MP local roots treatment varies, with all control variables held constant at their modal value in the sample. Top, predicted values when respondents receive no information about MP behavioral localism. Middle, predicted values when respondents receive information about MP behavioral localism and Nick is revealed to be low in behavioral localism. Bottom, predicted values when respondents receive information about MP behavioral localism and Nick is revealed to be high in behavioral localism. For each of the same behavioral localism conditions, B show the estimated treatment effect of MP Nick having local roots. Estimates are calculated from model 4 in table 2. Open circles indicate point estimates. Lines denote 95% confidence intervals."
+\newpage
 
 ### Figure 3 {-}
 
-```{r figure3, warning = FALSE, fig.cap="Figure 3. Estimated average marginal component effects of each MP attribute level compared to the baseline level of the attribute, estimated via ordinary least squares regression, with standard errors clustered by respondent. Bars show 95% confidence intervals"}
+```{r appendixfigure3, warning = FALSE, fig.cap="Figure 3. Estimated average marginal component effects of each MP attribute level compared to the baseline level of the attribute, estimated via ordinary least squares regression, with standard errors clustered by respondent. Bars show 95% confidence intervals"}
 
 #warning is false to delete warning for 11 deletions caused by ggplot which does not change vizualization from the paper. 
 
@@ -663,5 +711,3 @@ ggplot(res, aes(x = category, y = AMCE, color = attribute)) +
   scale_x_discrete(labels=labels)
 
 ```
-
-Caption from @paper: "Figure 3. Estimated average marginal component effects of each MP attribute level compared to the baseline level of the attribute, estimated via ordinary least squares regression, with standard errors clustered by respondent. Bars show 95% confidence intervals"
