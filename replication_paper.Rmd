@@ -11,7 +11,7 @@ biblio-style: "apalike"
 fontsize: 12pt
 linestretch: 1.5
 toc: false
-abstract: Campbell et al. (2019) which details two separate studies which bolster the cue based hypothesis of local roots. I successfully replicate all of their results. For my extension, with the first study, I used a Bayesian approach and found a negligible difference but did find heterogeneous effects based upon social class. With the second study, I looked at the interaction between the components and the respondent age groups as well as interaction between the components themselves where I found 18-24 year-olds being less critical of personal views influencing a member of Parliament's policy than their older counterparts and local roots downplaying the negative impact of the trustee model of representation on voter preference.
+abstract: Campbell et al. (2019) details two separate studies which bolster the cue based hypothesis of local roots. I successfully replicated all of their results. For my extension, with the first study, I used a Bayesian approach and found a negligible difference but did find heterogeneous effects based upon social class. With the second study, I looked at the interaction between the components and the respondent age groups as well as interaction between the components themselves where I found 18-24 year-olds being less critical of personal views influencing a member of Parliament's policy than their older counterparts and local roots downplaying the negative impact of the trustee model of representation on voter preference.
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
