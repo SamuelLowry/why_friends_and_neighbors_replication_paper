@@ -50,13 +50,13 @@ set.seed(1006)
 
 # Introduction {-} 
 
-@paper aims to answer the driving question of, "Why do politicians with strong local roots receive more electoral support?" by running and analyzing two separate studies. The first study uses a "paired profiles factorial vignette design" by asking subjects to rate hypothetical members of Parliament. The hypothetical members have varying levels of local roots as well as varying levels of "behavioral localism"—their track record of constituency service and if they act more so as a trustee or delegate. In the second study, subjects again considered hypothetical members of Parliament with varying levels of local roots. How, the subjects also received information on their political preferences and partisan loyalties. The first study depicted that the additional information swayed rankings, but local roots still seemed to have an association. The second study agreed with these results stating that, "even if voters are provided with a rich array of information about politicians’ behavior and ideological positioning, the effect of local roots remained positive and notable." The remainder of the article discusses the nuances of these results within the frame of the driving question.
+\textit{Why Friends and Neighbors? Explaining the Electoral Appeal of Local Roots} by Rosie Campbell, Philip Cowley, Nick Vivyan, and Markus Wagner in the \textit{The Journal of Politics} aims to answer the driving question of, "Why do politicians with strong local roots receive more electoral support?" by running and analyzing two separate studies. The first study uses a "paired profiles factorial vignette design" by asking subjects to rate hypothetical members of Parliament. The hypothetical members have varying levels of local roots as well as varying levels of "behavioral localism"—their track record of constituency service and if they act more so as a trustee or delegate. In the second study, subjects again considered hypothetical members of Parliament with varying levels of local roots. How, the subjects also received information on their political preferences and partisan loyalties. The first study depicted that the additional information swayed rankings, but local roots still seemed to have an association. The second study agreed with these results stating that, "even if voters are provided with a rich array of information about politicians’ behavior and ideological positioning, the effect of local roots remained positive and notable." The remainder of the article discusses the nuances of these results within the frame of the driving question.
 
 Using R, I replicated @paper. The original code can be found in the \textit{The Journal of Politics} Dataverse.^[https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/C15VOD] All of my code for this paper including the extension is available in my Github repository.^[https://github.com/SamuelLowry/why_friends_and_neighbors_replication_paper.git]
 
 # Literature Review {-} 
 
-Due to @paper being a very recent article, published May 6, 2019, there has not been any follow-up scholarly work on the topic even from the authors themselves. Nevertheless, @paper builds off of a rich history of the "friends and neighbors" effect which was first coined by @key. Other noteable works include @bowler and @garand which highlight the United States and @arzheimer as well as @arzheimer2 which highlight Britain. These two articles are particularly important due to @paper dealing with the "friends and neighbors" effect in the United Kingdom. These are just a couple of the noteable works. Of course, more in way of an actual review is to come.
+Due to @paper being a very recent article, published May 6, 2019, there has not been any follow-up scholarly work on the topic even from the authors themselves. Nevertheless, @paper builds off of a rich history of the "friends and neighbors" effect which was first coined by @key. Other notable works include @bowler and @garand which highlight the United States and @arzheimer as well as @arzheimer2 which highlight Britain. These two articles are particularly important due to @paper dealing with the "friends and neighbors" effect in the United Kingdom. These are just a couple of the notable works. Of course, more in way of an actual review is to come.
 
 # Paper Review {-} 
 
@@ -64,16 +64,21 @@ Due to @paper being a very recent article, published May 6, 2019, there has not 
 
 # Replication {-} 
 
-Using R, I was able to replicate all of @paper. All of the code needed to do the same can be found within the Appendix. 
+Using R, I was able to replicate all of @paper. All of the code needed to do the same can be found within the Appendix. The original code can be found in the \textit{The Journal of Politics} Dataverse.^[https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/C15VOD] All of my code for this paper including the extension is available in my Github repository.^[https://github.com/SamuelLowry/why_friends_and_neighbors_replication_paper.git]
 
 # Extension {-} 
 
-I have already been able to replicate all of the results from \textit{Why Friends and Neighbors? Explaining the Electoral Appeal of Local Roots} @paper by Rosie Campbell, Philip Cowley, Nick Vivyan, and Markus Wagner in the \textit{The Journal of Politics}. The next step is to improve upon their methods and make suggests as to what to do next. My thoughts are below:
+I was able to replicate all of the results from @paper. Next, in order to bolster their work and find interesting patterns nestled within the data, I delved into their models. Ultimately, I deemed the following four worthy enough to write about—two per study. 
 
-1. Use stan_glm instead of lm for study 1
-2. Look at heterogeneous effects for study 1
-3. Look at population effects for study 2
-4. Use a pAMCE for study 2 instead of an AMCE
+Study 1
+
+1. Using the Bayesian stan_glm instead of frequentist lm for the four models
+2. Looking at the heterogeneity of the treatment effect based upon class
+
+Study 2
+
+1. Looking at the interaction between the components and the respondent age groups
+2. Adding an interaction term between local roots and policy influence to the model 
 
 ## Study 1 {-} 
 
@@ -117,10 +122,11 @@ hux_1 <- huxreg(stan_m1, stan_m2, stan_m3, stan_m4,
                 statistics = NULL,
                 stars = NULL,
                 error_pos = "same",
+                note = "Table 1: Here stan_glm is used to construct the models instead of lm. The difference between the coefficients is negligible. The standard errors are slightly larger, though, due to stan_glm outputting MAD SD. The dependent variable is the relative rating of Nick compared to Philip.",
                 coefs = c('Intercept' = '(Intercept)',
                           "Has Local Roots" = "localtreatLocal roots",
                           "Behavioral Info Given" = "behtreatsimpleBehavioural info",
-                          "Treatments Interaction" = "localtreatLocal roots:behtreatsimpleBehavioural info",
+                          "Treatment Interaction" = "localtreatLocal roots:behtreatsimpleBehavioural info",
                           "Male" = "genderMale",
                           "25-49" = "agegrp25-49",
                           "50-64" = "agegrp50-64",
@@ -150,12 +156,11 @@ hux_1
 
 </left>
 
-Here, the four models are created using stan_glm instead of the traditional lm. The contents of the parentheses present the MAD SD and not a traditional standard error. 
-
+In Table 1, the four models from the first study were created using the Bayesian stan_glm function from the rstanarm package^[https://cran.r-project.org/web/packages/rstanarm/index.html] instead of the traditional, frequentist lm function used in @paper. Stan_glm allows for the use or priors, but in this case they are not used. While stan_glm uses a Gaussian process in order to construct its models, due to not including a prior, the difference between the coefficients is practically nonexistent.^[Compare Table 1 to Table 2 in the Appendix] There is a difference, though, between the standard errors. @paper uses "robust standard errors". In this case, they used the vcovHC function from the sandwich package^[https://cran.r-project.org/web/packages/sandwich/sandwich.pdf]. VcovHC calculates heteroscedasticity consistent standard errors. As described in @hetero, "heteroscedasticity occurs when the variance of the errors varies across observations." In an ordinary least squares regression, this can lead to bias due to differing variance across different groups. VcocHC seeks to account for this difference leading to "robust", unbiased standard errors. Stan_glm on the other hand outputs median absolute deviation (MAD SD) in the standard error parentheses. In order to get the MAD SD, the median absolute deviation is scaled by 1.483 which, according to @textbook, "reproduces the standard error in the special case of a the normal distribution". @textbook describes MAD SD as a, "more stable measure of variation".^[See page 67 of @textbook for more details] In both cases, the standard errors are more robust than the traditional standard error. Nevertheless, the MAD SD tends to be larger than the robust standard error used in @paper. All in all, the difference between the use of lm and stan_glm in this case is largely negligible.
 
 <left>
 
-```{r study1figure}
+```{r study1figure, fig.cap="Figure 1: Stan_glm model of the interaction between the treatment effects by social class. The lines denote 95% credible intervals. The treatments affect the unskilled working class in a notably different manner."}
 
 #Subsetting based upon class
 
@@ -213,14 +218,14 @@ dwplot(list(stan_a, stan_c1, stan_c2, stan_d),
 
 </left>
 
+In Figure 1, stan_glm was used to create four models from subsets of the data based upon the NRS social grade of the respondents^[AB = Middle, C1 = Lower Middle, C2 = Skilled Working, DE = Unskilled Working] in order to discover heterogeneous effects. The unskilled working class stands out from the rest. The local roots treatment does not definitively positively impact their rating of Nick unlike the other classes. In addition, while the other classes are not definitively deterred by behavior indicative of a national focus, the unskilled working class is. Nevertheless, the median constituency focus coefficient is notably lower for the unskilled working class than the other classes. Thus, the unskilled working class more so rejects a focus on national polices than endorses a focus on local politics compared to the other classes. The interaction terms are also different. For both the local roots constituency focus group and the local roots national focus group the slope is larger for the unskilled working class unlike the other classes—granted, the 95% credible just peeks over zero for some of the other classes.^[See page 128-129 of @textbook for further information on interaction] The treatment effects are notably different by class. 
+
+
 ## Study 2 {-} 
-
-
-I also wanted to look at the urban/rural divide, so I compared London, the only completely urban region within the UK with the rest of the UK regions. These tables appear to be almost identical and can be compared to figure 3 of @paper. 
 
 <left>
 
-```{r study2hetero}
+```{r study2hetero, fig.cap="Figure 2: The average marginal component effects from the second study depicted amongst subsets of respondent age. Lines denote a 95% confidence interval. There is a notable difference amongst 18-24 year-olds in regards to personal views influencing an MP's policies."}
 
 #subsetting based upon age. 
 
@@ -276,16 +281,11 @@ dwplot(list(conjoint_18, conjoint_25, conjoint_40, conjoint_60),
 
 </left>
 
-
-
-
-
-
-
+In Figure 2, the average marginal component effects from the second study are depicted amongst subsets of respondent age. @con, the landmark paper on conjoint analysis, outlines two types of interaction within conjoint studies. The first involves two components interacting. The second involves a component interacting with respondent attributes. Here, the latter is occurring, as seen by the notable difference between the age groups in the component effect of personal views being a policy influence. For all age groups except 18-24 year-olds, the average marginal component effect is negative—granted, the 95% confidence interval crosses zero for both 40-59 year-olds and the 60+ group. The 18-24 year-old respondents were definitively swayed in their selection an MP by personal views having an influence on the MP's politics, as the 95% confidence interval does not cross zero. This is especially interesting because policy influence between personal views and constituents' views elicits the greatest difference amongst the average marginal component effects when all respondents are analysed together.^[See Figure 3]  
 
 <left>
 
-```{r study2interaction, fig.height = 6}
+```{r study2interaction, fig.height = 6, fig.cap="Figure 3: The average marginal component effects from the second study with and without interaction between local roots and policy influence. Lines denote a 95% confindence interval. The average component interaction effects demonstrate how local roots can downplay the negative impact of personal views influencing policy."}
 
 #recreation of AMCE from the paper.
 
@@ -339,15 +339,12 @@ dwplot(list(conjoint, conjoint_interaction)) %>%
 
 </left>
 
-This has yet to be completed, but study 2 utilizes AMCE in their analysis of the conjoints. Nevertheless, as pointed out in @pamce, "MCE critically relies upon the distribution of the other attributes used for the averaging. Although most employ uniform distribution, which equally weights each profile, both the actual distribution of profiles in the real world and the distribution of theoretical interest are often far from uniform." Therefore they propose the use of pAMCE using the factorEx R package which takes population into account. I aim to utilize this instead of AMCE as a further extension. 
-
-These extensions hopefully better the article as a whole and clarify its implications. 
-
-\newpage
+In Figure 3, the average component interaction effects between local roots and policy influence are shown in addition to the average marginal component effects depicted in @paper. In regards to @con, the first type of interaction is seen here. The average component interaction effects display how local roots in part negate the negative effect of personal views influencing policy. The interaction term for the MPs that grew up and live in the area and that allow constituents to influence policy and the interaction term for MPs that grew up and live in the area and that allow their own personal views influence policy are both positive and significant at a 95% confidence level. In other words, local roots, the subject of @paper, excuses what is otherwise seen as undesirable. Nevertheless, it may not be a case of excusing what respondents otherwise see as bad. Instead, respondents could claim that they trust an MP's personal views more if they are from the same area. 
 
 # Conclusion {-} 
 
-There is little difference between the stan_glm and the lm. I have yet to figure out the pAMCE. More is to come!
+
+
 
 \newpage
 
@@ -361,7 +358,7 @@ There is little difference between the stan_glm and the lm. I have yet to figure
 
 # Appendix of Replicated Graphics {-} 
 
-I was able to replicate Table 2, Figure 1, and Figure 3. They are below. I was unable to replicate Table 1 and Figure 2 because they were not data related. They were merely visualizations displaying content about methods and experimental design. Table 1 depicts written descriptions of the hypothetical Members of Parliament present to subject. Figure 2 depicts a screenshot of the survey. 
+I was able to replicate Table 2, Figure 1, and Figure 3 from @paper. I was unable to replicate Table 1 and Figure 2 because they were not data related. They were merely visualizations displaying content about methods and experimental design. Table 1 depicts written descriptions of the hypothetical Members of Parliament present to subject. Figure 2 depicts a screenshot of the survey. The replicated table and figures are below.
 
 ## Table 2 {-} 
 
